@@ -1,65 +1,89 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { signInAnonymously, onAuthStateChanged, User } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "../lib/firebase";
+import React, { useState, useEffect } from "react"
+import { onAuthStateChanged, User, signOut } from "firebase/auth"
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore"
+import { auth, db } from "@/lib/firebase"
+import { Loader2 } from "lucide-react"
 
-// 作ったコンポーネントを読み込み（ファイル名は実際のものに合わせてください）
-import { WelcomeScreen } from "../components/WelcomeScreen";
-import { RecipeListScreen } from "../components/RecipeListScreen";
+import { WelcomeScreen } from "@/components/WelcomeScreen"
+import { RecipeListScreen } from "@/components/RecipeListScreen"
+import { CreateShopScreen } from "@/components/CreateShopScreen" // 追加
 
-export default function Home() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // 読み込み中フラグ
+export default function Page() {
+  const [user, setUser] = useState<User | null>(null)
+  const [shopId, setShopId] = useState<string | null>(null) // shopIdを持つ
+  const [loading, setLoading] = useState(true)
 
-  // ログイン状態を監視
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser)
 
-  // ログイン処理（WelcomeScreenから呼ばれる）
-  const handleLogin = async () => {
-    try {
-      const credential = await signInAnonymously(auth);
-      const user = credential.user;
+      if (currentUser) {
+        try {
+          const userRef = doc(db, "users", currentUser.uid)
+          const userSnap = await getDoc(userRef)
 
-      // ユーザー登録処理
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          id: user.uid,
-          name: "ゲストスタッフ",
-          createdAt: serverTimestamp(),
-        });
+          if (userSnap.exists()) {
+            // ユーザーデータがあるなら、shopIdを持っているか確認
+            const userData = userSnap.data()
+            if (userData.shopId) {
+              setShopId(userData.shopId)
+            }
+          } else {
+            // ユーザーデータがない場合（新規作成）
+            await setDoc(userRef, {
+              id: currentUser.uid,
+              name: currentUser.displayName || (currentUser.isAnonymous ? "ゲストスタッフ" : "No Name"),
+              photoURL: currentUser.photoURL || null,
+              createdAt: serverTimestamp(),
+            })
+          }
+        } catch (error) {
+          console.error("User DB sync failed:", error)
+        }
+      } else {
+        setShopId(null)
       }
-    } catch (error) {
-      console.error("Login failed", error);
-      alert("ログインに失敗しました");
-    }
-  };
+
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [])
 
   const handleLogout = async () => {
-    await auth.signOut();
-  };
+    await signOut(auth)
+    setShopId(null)
+  }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#f8fafc]">
+        <Loader2 className="w-8 h-8 text-[#0f766e] animate-spin" />
+      </div>
+    )
+  }
 
+  // 1. 未ログイン -> Welcome画面
+  if (!user) {
+    return <WelcomeScreen onLogin={() => { }} />
+  }
+
+  // 2. ログイン済みだが、店がない -> 店舗作成画面
+  if (!shopId) {
+    return (
+      <CreateShopScreen
+        userId={user.uid}
+        onShopCreated={(newId) => setShopId(newId)}
+      />
+    )
+  }
+
+  // 3. 店がある -> レシピ一覧（shopIdを渡す！）
   return (
-    <main className="min-h-screen bg-slate-50">
-      {/* ログインしていればレシピ一覧、していなければウェルカム画面を表示 */}
-      {user ? (
-        <RecipeListScreen onLogout={handleLogout} />
-      ) : (
-        // onLoginという名前で関数を渡す（WelcomeScreen側でこれを受け取る必要があります！）
-        <WelcomeScreen onLogin={handleLogin} />
-      )}
-    </main>
-  );
+    <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl overflow-hidden">
+      <RecipeListScreen shopId={shopId} onLogout={handleLogout} />
+    </div>
+  )
 }

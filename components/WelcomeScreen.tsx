@@ -25,14 +25,14 @@ export function WelcomeScreen({ onLogin }: WelcomeScreenProps) {
             // 成功したら親コンポーネント(page.tsx)に伝える
             // ※ page.tsxでonAuthStateChangedを監視していれば、自動で画面が切り替わります
         } catch (error: any) {
-            console.error("LINE Login failed:", error)
-
-            // よくあるエラーのハンドリング
+            // 「閉じただけ」の場合は何もしない（ログも出さない）
             if (error.code === 'auth/popup-closed-by-user') {
-                alert("ログインがキャンセルされました")
-            } else {
-                alert(`ログインに失敗しました。\nエラー: ${error.message}`)
+                console.log("ログインがキャンセルされました")
+                return
             }
+
+            console.error("LINE Login failed:", error)
+            alert(`ログインに失敗しました。\nエラー: ${error.message}`)
         } finally {
             setIsLoading(false)
         }

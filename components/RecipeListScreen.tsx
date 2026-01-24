@@ -1,380 +1,224 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import {
-    Menu,
-    Search,
-    User,
-    Heart,
-    BookOpen,
-    Brain,
-    UserCircle,
-    LogOut,
-    Plus,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { RecipeDetailScreen } from "./RecipeDetailScreen"
-import { AddRecipeModal } from "./AddRecipeModal"
-// Firestoreの機能をインポート
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore"
+import { Search, Plus, Coffee, Settings } from "lucide-react" // LogOutを削除しSettingsを追加
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { AddRecipeModal } from "./AddRecipeModal"
+import { RecipeDetailScreen } from "./RecipeDetailScreen"
+import { ShopSettingsModal } from "./ShopSettingsModal" // 追加
 
-interface RecipeListScreenProps {
-    onLogout: () => void
-}
-
-const categories = [
-    { id: "all", label: "ALL" },
-    { id: "Coffee", label: "Coffee" }, // DBの保存名に合わせて大文字に修正
-    { id: "Tea", label: "Tea" },
-    { id: "Frappe", label: "Frappe" },
-    { id: "Food", label: "Food" },
-]
-
-// レシピの型定義（DBの形に合わせる）
-type Recipe = {
+// レシピの型定義
+interface Recipe {
     id: string
     title: string
     category: string
     tags: string[]
-    image?: string | null
-    isFavorite?: boolean // とりあえず画面用
+    image?: string
+    ingredients?: string[]
+    steps?: string
+    createdAt?: any
 }
 
-export function RecipeListScreen({ onLogout }: RecipeListScreenProps) {
-    // レシピを管理する箱（最初は空っぽ）
-    const [recipes, setRecipes] = useState<Recipe[]>([])
+interface RecipeListScreenProps {
+    shopId: string
+    onLogout?: () => void
+}
 
-    const [activeCategory, setActiveCategory] = useState("all")
-    const [favorites, setFavorites] = useState<string[]>([]) // IDはstringになるので修正
-    const [activeTab, setActiveTab] = useState("recipes")
+export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
+    const [recipes, setRecipes] = useState<Recipe[]>([])
+    const [searchQuery, setSearchQuery] = useState("")
+    const [selectedCategory, setSelectedCategory] = useState("All")
+    const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+
+    // 設定モーダルの開閉状態
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
+    // 編集中のレシピを入れておくステート
     const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null)
 
-    // 🌟 ここが魔法のコード！DBをリアルタイム監視
+    // Firestoreからレシピをリアルタイム取得
     useEffect(() => {
-        // "stores/my-shop/recipes" を "作成日順" で監視する設定
-        const q = query(
-            collection(db, "stores", "my-shop", "recipes"),
-            orderBy("createdAt", "desc")
-        )
-
-        // 監視スタート！データが変わるたびにここが動く
+        if (!shopId) return
+        const q = query(collection(db, "stores", shopId, "recipes"), orderBy("createdAt", "desc"))
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const recipeData = snapshot.docs.map((doc) => ({
+            const recipesData = snapshot.docs.map((doc) => ({
                 id: doc.id,
                 ...doc.data(),
             })) as Recipe[]
-
-            setRecipes(recipeData)
+            setRecipes(recipesData)
         })
-
-        // 画面を閉じる時に監視を終了する（メモリ節約）
         return () => unsubscribe()
-    }, [])
+    }, [shopId])
 
-    const toggleFavorite = (id: string) => {
-        setFavorites((prev) =>
-            prev.includes(id) ? prev.filter((fid) => fid !== id) : [...prev, id]
-        )
-    }
-
-    const handleRecipeClick = (recipe: Recipe) => {
-        setSelectedRecipe(recipe)
-    }
-
-    const handleBackFromDetail = () => {
-        setSelectedRecipe(null)
-    }
-
-    const handleEditFromDetail = () => {
-        setEditingRecipe(selectedRecipe)
-        setIsAddModalOpen(true)
-    }
-
-    const handleOpenAddModal = () => {
-        setEditingRecipe(null)
-        setIsAddModalOpen(true)
-    }
-
-    const handleCloseModal = () => {
-        setIsAddModalOpen(false)
-        setEditingRecipe(null)
-    }
-
-    const handleSaveRecipe = () => {
-        // 保存処理はModal内で完結しているので、ここでは閉じるだけ
-        // リアルタイム監視しているので、リロードしなくても勝手にリストが増えます！
-        setIsAddModalOpen(false)
-        setEditingRecipe(null)
-    }
-
-    // カテゴリでフィルタリング
-    const filteredRecipes = recipes.filter(recipe => {
-        if (activeCategory === "all") return true
-        return recipe.category === activeCategory
+    // 検索フィルタリング
+    const filteredRecipes = recipes.filter((recipe) => {
+        const matchesSearch = recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            recipe.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+        const matchesCategory = selectedCategory === "All" || recipe.category === selectedCategory
+        return matchesSearch && matchesCategory
     })
 
-    if (selectedRecipe) {
-        return (
-            <RecipeDetailScreen
-                recipe={selectedRecipe}
-                onBack={handleBackFromDetail}
-                onEdit={handleEditFromDetail}
-            />
-        )
+    // 削除機能
+    const handleDeleteRecipe = async (recipeId: string) => {
+        if (!window.confirm("本当にこのレシピを削除しますか？\n（元に戻せません）")) return
+
+        try {
+            await deleteDoc(doc(db, "stores", shopId, "recipes", recipeId))
+            setSelectedRecipe(null) // 詳細画面を閉じる
+            alert("削除しました")
+        } catch (error) {
+            console.error("Error deleting document: ", error)
+            alert("削除に失敗しました")
+        }
     }
 
+    // 編集開始
+    const handleEditRecipe = () => {
+        if (selectedRecipe) {
+            setEditingRecipe(selectedRecipe) // 編集対象をセット
+            setIsModalOpen(true) // モーダルを開く
+        }
+    }
+
+    // 詳細画面が開いているなら詳細画面を表示
     return (
-        <div className="flex flex-col min-h-screen bg-white">
-            {/* Header */}
-            <header className="sticky top-0 z-50 bg-white border-b border-[#f0f0f0] px-4 py-3">
-                <div className="flex items-center justify-between">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-[#333333] hover:bg-[#f5f5f5] h-10 w-10"
+        <>
+            {selectedRecipe ? (
+                <RecipeDetailScreen
+                    recipe={selectedRecipe}
+                    onBack={() => setSelectedRecipe(null)}
+                    onEdit={handleEditRecipe}
+                    onDelete={() => handleDeleteRecipe(selectedRecipe.id)}
+                />
+            ) : (
+                <div className="flex flex-col h-screen bg-white">
+                    {/* Header */}
+                    <div className="px-6 pt-12 pb-4 bg-white sticky top-0 z-10">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h1 className="text-2xl font-bold text-[#333333]">Recipes</h1>
+                                <p className="text-[#999999] text-sm">Welcome back, Barista</p>
+                            </div>
+                            {/* 設定ボタン（旧ログアウトボタン） */}
+                            <button
+                                onClick={() => setIsSettingsOpen(true)}
+                                className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
                             >
-                                <Menu className="w-5 h-5" strokeWidth={2} />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-48">
-                            <DropdownMenuItem>
-                                <BookOpen className="w-4 h-4 mr-2" />
-                                レシピ一覧
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <Brain className="w-4 h-4 mr-2" />
-                                ドリル
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <Heart className="w-4 h-4 mr-2" />
-                                お気に入り
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={onLogout}>
-                                <LogOut className="w-4 h-4 mr-2" />
-                                ログアウト
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                <Settings className="w-5 h-5" />
+                            </button>
+                        </div>
 
-                    <h1 className="text-base font-semibold text-[#333333]">
-                        Kalua 渋谷店
-                    </h1>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-[#333333] hover:bg-[#f5f5f5] h-10 w-10"
-                            >
-                                <User className="w-5 h-5" strokeWidth={2} />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem>
-                                <UserCircle className="w-4 h-4 mr-2" />
-                                マイページ
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={onLogout}>
-                                <LogOut className="w-4 h-4 mr-2" />
-                                ログアウト
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </header>
-
-            {/* Search & Filter */}
-            <div className="sticky top-[57px] z-40 bg-white px-4 py-4 border-b border-[#f0f0f0]">
-                <div className="relative mb-4">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#999999]" />
-                    <Input
-                        type="text"
-                        placeholder="レシピを検索..."
-                        className="pl-10 h-11 rounded-lg bg-[#f8fafc] border-0 text-[#333333] placeholder:text-[#999999] focus-visible:ring-1 focus-visible:ring-[#0f766e]"
-                    />
-                </div>
-
-                <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
-                    {categories.map((category) => (
-                        <button
-                            key={category.id}
-                            onClick={() => setActiveCategory(category.id)}
-                            className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors rounded-lg ${activeCategory === category.id
-                                ? "text-[#0f766e] bg-[#0f766e]/10"
-                                : "text-[#666666] hover:text-[#333333] hover:bg-[#f5f5f5]"
-                                }`}
-                        >
-                            {category.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Recipe Grid */}
-            <main className="flex-1 p-4 pb-24">
-                {/* レシピがない場合の表示 */}
-                {filteredRecipes.length === 0 ? (
-                    <div className="text-center py-10 text-gray-400 text-sm">
-                        レシピがまだありません。<br />
-                        右下の＋ボタンから追加してください。
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                        {filteredRecipes.map((recipe) => (
-                            <RecipeCard
-                                key={recipe.id}
-                                recipe={recipe}
-                                isFavorite={favorites.includes(recipe.id)}
-                                onToggleFavorite={() => toggleFavorite(recipe.id)}
-                                onClick={() => handleRecipeClick(recipe)}
+                        {/* Search Bar */}
+                        <div className="relative mb-6">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#999999] w-5 h-5" />
+                            <input
+                                type="text"
+                                placeholder="Search recipes..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-[#f5f5f5] rounded-xl py-3 pl-10 pr-4 text-[#333333] placeholder-[#999999] outline-none focus:ring-2 focus:ring-[#0f766e]/20"
                             />
-                        ))}
+                        </div>
+
+                        {/* Categories */}
+                        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                            {["All", "Coffee", "Tea", "Frappe", "Food", "Other"].map((category) => (
+                                <button
+                                    key={category}
+                                    onClick={() => setSelectedCategory(category)}
+                                    className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${selectedCategory === category
+                                        ? "bg-[#0f766e] text-white"
+                                        : "bg-white border border-[#e0e0e0] text-[#666666]"
+                                        }`}
+                                >
+                                    {category}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                )}
-            </main>
 
-            {/* Floating Action Button */}
-            <button
-                onClick={handleOpenAddModal}
-                className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-[#0f766e] hover:bg-[#0d6560] text-white shadow-lg flex items-center justify-center transition-colors z-40"
-            >
-                <Plus className="w-6 h-6" strokeWidth={2.5} />
-            </button>
+                    {/* Recipe Grid */}
+                    <div className="flex-1 overflow-y-auto px-6 pb-24">
+                        <div className="grid grid-cols-2 gap-4">
+                            {filteredRecipes.map((recipe) => (
+                                <RecipeCard
+                                    key={recipe.id}
+                                    recipe={recipe}
+                                    onClick={() => setSelectedRecipe(recipe)}
+                                />
+                            ))}
+                        </div>
+                    </div>
 
-            {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-[#f0f0f0]">
-                <div className="flex items-center justify-around py-2 px-4">
-                    <NavItem
-                        icon={BookOpen}
-                        label="Recipes"
-                        isActive={activeTab === "recipes"}
-                        onClick={() => setActiveTab("recipes")}
-                    />
-                    <NavItem
-                        icon={Brain}
-                        label="Drill"
-                        isActive={activeTab === "drill"}
-                        onClick={() => setActiveTab("drill")}
-                    />
-                    <NavItem
-                        icon={UserCircle}
-                        label="My Page"
-                        isActive={activeTab === "mypage"}
-                        onClick={() => setActiveTab("mypage")}
-                    />
+                    {/* Floating Action Button */}
+                    <button
+                        onClick={() => {
+                            setEditingRecipe(null) // 新規作成なので編集対象を空にする
+                            setIsModalOpen(true)
+                        }}
+                        className="fixed bottom-6 right-6 w-14 h-14 bg-[#0f766e] rounded-full flex items-center justify-center shadow-lg hover:bg-[#0d6560] transition-colors z-20"
+                    >
+                        <Plus className="text-white w-6 h-6" />
+                    </button>
+
                 </div>
-                <div className="h-[env(safe-area-inset-bottom)]" />
-            </nav>
+            )}
 
+            {/* レシピ追加・編集モーダル */}
             <AddRecipeModal
-                isOpen={isAddModalOpen}
-                onClose={handleCloseModal}
-                onSave={handleSaveRecipe}
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={() => {
+                    setIsModalOpen(false)
+                    setEditingRecipe(null)
+                    if (editingRecipe) {
+                        setSelectedRecipe(null)
+                    }
+                }}
                 editingRecipe={editingRecipe}
+                shopId={shopId}
             />
-        </div>
+
+            {/* 設定モーダル（ここに追加！） */}
+            <ShopSettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                shopId={shopId}
+                onLogout={onLogout}
+            />
+        </>
     )
 }
 
-interface RecipeCardProps {
-    recipe: Recipe
-    isFavorite: boolean
-    onToggleFavorite: () => void
-    onClick: () => void
-}
-
-// components/RecipeListScreen.tsx の一番下にある関数です
-
-function RecipeCard({ recipe, isFavorite, onToggleFavorite, onClick }: RecipeCardProps) {
+function RecipeCard({ recipe, onClick }: { recipe: Recipe, onClick: () => void }) {
     return (
         <div
             onClick={onClick}
             className="bg-white rounded-xl border border-[#f0f0f0] overflow-hidden hover:border-[#e0e0e0] transition-colors text-left w-full cursor-pointer"
         >
-            {/* Image Area */}
             <div className="relative aspect-[3/2] bg-[#f8fafc]">
-                {/* 🌟 修正ポイント: 画像があれば表示、なければ灰色の箱 */}
                 {recipe.image ? (
-                    <img
-                        src={recipe.image}
-                        alt={recipe.title}
-                        className="w-full h-full object-cover"
-                    />
+                    <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover" />
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-10 h-14 rounded-md bg-[#e8e8e8]" />
+                        <Coffee className="w-8 h-8 text-gray-300" />
                     </div>
                 )}
-
-                {/* お気に入りボタン（ここはそのまま） */}
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation()
-                        onToggleFavorite()
-                    }}
-                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors"
-                >
-                    <Heart
-                        className={`w-4 h-4 transition-colors ${isFavorite ? "fill-[#ef4444] text-[#ef4444]" : "text-[#999999]"
-                            }`}
-                    />
-                </button>
             </div>
-
-            {/* Content (そのまま) */}
             <div className="p-3">
                 <h3 className="font-semibold text-[#333333] text-sm leading-snug mb-2 line-clamp-2">
                     {recipe.title}
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
                     {recipe.tags && recipe.tags.map((tag) => (
-                        <span
-                            key={tag}
-                            className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-[#666666] font-medium"
-                        >
+                        <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-[#f5f5f5] text-[#666666] font-medium">
                             {tag}
                         </span>
                     ))}
                 </div>
             </div>
         </div>
-    )
-}
-
-interface NavItemProps {
-    icon: React.ComponentType<{ className?: string }>
-    label: string
-    isActive: boolean
-    onClick: () => void
-}
-
-function NavItem({ icon: Icon, label, isActive, onClick }: NavItemProps) {
-    return (
-        <button
-            onClick={onClick}
-            className={`flex flex-col items-center gap-1 px-5 py-2 rounded-lg transition-colors ${isActive
-                ? "text-[#0f766e]"
-                : "text-[#999999] hover:text-[#666666]"
-                }`}
-        >
-            <Icon className={`w-5 h-5 ${isActive ? "stroke-[2.5px]" : "stroke-[1.5px]"}`} />
-            <span className={`text-xs ${isActive ? "font-semibold" : "font-medium"}`}>{label}</span>
-        </button>
     )
 }

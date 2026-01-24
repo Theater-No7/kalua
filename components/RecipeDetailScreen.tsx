@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { ArrowLeft, Clock, Flame, ChefHat, CheckCircle2, Circle, Edit2, Heart } from "lucide-react"
+import { ArrowLeft, Clock, Flame, ChefHat, CheckCircle2, Circle, Edit2, Heart, Trash2 } from "lucide-react"
 
 // 受け取るデータの形を定義
 interface Recipe {
@@ -19,9 +19,10 @@ interface RecipeDetailScreenProps {
     recipe: Recipe
     onBack: () => void
     onEdit: () => void
+    onDelete: () => void
 }
 
-export function RecipeDetailScreen({ recipe, onBack, onEdit }: RecipeDetailScreenProps) {
+export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete }: RecipeDetailScreenProps) {
     // 材料のチェック状態を管理（作ってる最中のメモ用）
     const [checkedIngredients, setCheckedIngredients] = useState<number[]>([])
 
@@ -57,13 +58,24 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit }: RecipeDetailScree
                     <ArrowLeft className="w-6 h-6" />
                 </button>
 
-                {/* 編集ボタン（右上） */}
-                <button
-                    onClick={onEdit}
-                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-gray-700 hover:bg-white transition-colors z-10 shadow-sm"
-                >
-                    <Edit2 className="w-5 h-5" />
-                </button>
+                {/* 操作ボタンエリア（右上） */}
+                <div className="absolute top-4 right-4 flex gap-3 z-10">
+                    {/* 削除ボタン */}
+                    <button
+                        onClick={onDelete}
+                        className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors shadow-sm"
+                    >
+                        <Trash2 className="w-5 h-5" />
+                    </button>
+
+                    {/* 編集ボタン */}
+                    <button
+                        onClick={onEdit}
+                        className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-gray-700 hover:bg-white transition-colors shadow-sm"
+                    >
+                        <Edit2 className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
 
             {/* 詳細コンテンツ */}
@@ -123,8 +135,8 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit }: RecipeDetailScree
                                         key={index}
                                         onClick={() => toggleIngredient(index)}
                                         className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${isChecked
-                                                ? "bg-emerald-50 border-emerald-100"
-                                                : "bg-white border-gray-100 hover:border-gray-200"
+                                            ? "bg-emerald-50 border-emerald-100"
+                                            : "bg-white border-gray-100 hover:border-gray-200"
                                             }`}
                                     >
                                         {isChecked ? (
