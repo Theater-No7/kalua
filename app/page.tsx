@@ -82,7 +82,7 @@ export default function Page() {
 
   // 3. 店がある -> レシピ一覧（shopIdを渡す！）
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl overflow-hidden">
+    <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl overflow-hidden md:max-w-none md:w-full md:mx-0 md:h-screen md:flex md:shadow-none">
       <RecipeListScreen shopId={shopId} onLogout={handleLogout} />
     </div>
   )

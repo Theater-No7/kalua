@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { Store, Loader2, ArrowRight, Users, Building2 } from "lucide-react"
-import { doc, setDoc, updateDoc, getDoc, serverTimestamp } from "firebase/firestore"
+import { doc, setDoc, updateDoc, getDoc, serverTimestamp, writeBatch, collection } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 interface CreateShopScreenProps {
@@ -22,12 +22,32 @@ export function CreateShopScreen({ userId, onShopCreated }: CreateShopScreenProp
 
         try {
             const shopId = `shop_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
-            await setDoc(doc(db, "stores", shopId), {
+            const batch = writeBatch(db)
+
+            // 1. 店舗作成
+            const shopRef = doc(db, "stores", shopId)
+            batch.set(shopRef, {
                 name: inputVal,
                 ownerId: userId,
                 createdAt: serverTimestamp(),
             })
-            await updateDoc(doc(db, "users", userId), { shopId: shopId, role: "owner" })
+
+            // 2. ユーザー更新
+            const userRef = doc(db, "users", userId)
+            batch.update(userRef, { shopId: shopId, role: "owner" })
+
+            // 3. デフォルトカテゴリ作成
+            const defaultCategories = ["Coffee", "Tea", "Frappe", "Food", "Other"]
+            defaultCategories.forEach((catName, index) => {
+                const newCatRef = doc(collection(db, "stores", shopId, "categories"))
+                batch.set(newCatRef, {
+                    name: catName,
+                    order: index,
+                    createdAt: serverTimestamp()
+                })
+            })
+
+            await batch.commit()
             onShopCreated(shopId)
         } catch (error) {
             console.error("Failed:", error)

@@ -1,9 +1,10 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { X, Copy, Check, Store, LogOut, Users, UserCircle2, Crown } from "lucide-react"
+import { X, Copy, Check, Store, LogOut, Users, UserCircle2, Crown, Grid } from "lucide-react"
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore" // Firestore機能を追加
 import { db } from "@/lib/firebase"
+import { CategorySettingsScreen } from "./CategorySettingsScreen" // 追加
 
 interface ShopSettingsModalProps {
     isOpen: boolean
@@ -24,11 +25,13 @@ export function ShopSettingsModal({ isOpen, onClose, shopId, onLogout }: ShopSet
     const [copied, setCopied] = useState(false)
     const [members, setMembers] = useState<Member[]>([]) // メンバー一覧
     const [loading, setLoading] = useState(false)
+    const [currentView, setCurrentView] = useState<"settings" | "categories">("settings") // 画面切り替えステート
 
-    // モーダルが開いた時にメンバーを取得
+    // モーダルが開いた時にメンバーを取得 & ビューをリセット
     useEffect(() => {
         if (isOpen && shopId) {
             fetchMembers()
+            setCurrentView("settings") // 毎回リセット
         }
     }, [isOpen, shopId])
 
@@ -65,6 +68,21 @@ export function ShopSettingsModal({ isOpen, onClose, shopId, onLogout }: ShopSet
 
     if (!isOpen) return null
 
+    // カテゴリ編集画面
+    if (currentView === "categories") {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden max-h-[85vh] h-full flex flex-col">
+                    <CategorySettingsScreen
+                        shopId={shopId}
+                        onBack={() => setCurrentView("settings")}
+                    />
+                </div>
+            </div>
+        )
+    }
+
+    // 通常設定画面
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden max-h-[85vh] flex flex-col">
@@ -86,6 +104,17 @@ export function ShopSettingsModal({ isOpen, onClose, shopId, onLogout }: ShopSet
                 {/* コンテンツ（スクロール可能に） */}
                 <div className="p-6 space-y-6 overflow-y-auto">
 
+                    {/* カテゴリ管理ボタン (New!) */}
+                    <button
+                        onClick={() => setCurrentView("categories")}
+                        className="w-full py-4 text-[#0f766e] font-bold bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors flex items-center justify-center gap-2 border border-emerald-100"
+                    >
+                        <Grid className="w-5 h-5" />
+                        Edit Categories
+                    </button>
+
+                    <hr className="border-gray-100" />
+
                     {/* 招待コード */}
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
@@ -98,8 +127,8 @@ export function ShopSettingsModal({ isOpen, onClose, shopId, onLogout }: ShopSet
                             <button
                                 onClick={handleCopyId}
                                 className={`p-3 rounded-xl transition-all ${copied
-                                        ? "bg-green-500 text-white shadow-lg shadow-green-200"
-                                        : "bg-gray-800 text-white hover:bg-gray-900 shadow-lg"
+                                    ? "bg-green-500 text-white shadow-lg shadow-green-200"
+                                    : "bg-gray-800 text-white hover:bg-gray-900 shadow-lg"
                                     }`}
                             >
                                 {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
