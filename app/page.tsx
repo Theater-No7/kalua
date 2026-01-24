@@ -1,85 +1,65 @@
-"use client"; // 👈 これが重要！ユーザーの操作（クリックなど）を扱う印
+"use client";
 
 import { useEffect, useState } from "react";
-import { signInAnonymously, onAuthStateChanged, User, signOut } from "firebase/auth";
-import { auth } from "../lib/firebase"; // 作ったファイルを読み込み
+import { signInAnonymously, onAuthStateChanged, User } from "firebase/auth";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../lib/firebase";
+
+// 作ったコンポーネントを読み込み（ファイル名は実際のものに合わせてください）
+import { WelcomeScreen } from "../components/WelcomeScreen";
+import { RecipeListScreen } from "../components/RecipeListScreen";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true); // 読み込み中フラグ
 
-  // 画面が開かれたら、ログイン状態を監視する
+  // ログイン状態を監視
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // ログインボタンを押した時の処理
+  // ログイン処理（WelcomeScreenから呼ばれる）
   const handleLogin = async () => {
     try {
-      await signInAnonymously(auth);
-      alert("いらっしゃいませ！(ログイン成功)");
+      const credential = await signInAnonymously(auth);
+      const user = credential.user;
+
+      // ユーザー登録処理
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          id: user.uid,
+          name: "ゲストスタッフ",
+          createdAt: serverTimestamp(),
+        });
+      }
     } catch (error) {
-      console.error(error);
-      alert("エラーが発生しました");
+      console.error("Login failed", error);
+      alert("ログインに失敗しました");
     }
   };
 
-  // ログアウトボタンを押した時の処理
   const handleLogout = async () => {
-    await signOut(auth);
-    alert("お疲れ様でした！(ログアウト完了)");
+    await auth.signOut();
   };
 
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50">Loading...</div>;
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-stone-50 to-[#e8f5e9] text-stone-700 p-6 font-sans">
-      <div className="max-w-md w-full text-center space-y-10">
-
-        {/* ロゴエリア */}
-        <div className="space-y-2">
-          <h1 className="text-6xl font-extrabold tracking-tight text-emerald-900 drop-shadow-sm">Kalua 🍸</h1>
-          <p className="text-xl text-stone-500 font-medium tracking-wide">Barista Training App</p>
-        </div>
-
-        {/* ログイン状態による出し分け */}
-        <div className="bg-white/90 backdrop-blur-sm p-10 rounded-3xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] space-y-8 border border-white/50">
-          {user ? (
-            // ログインしている時
-            <>
-              <div className="space-y-3">
-                <p className="text-2xl font-semibold text-emerald-950">お疲れ様です！</p>
-                <div className="inline-block px-4 py-1.5 bg-stone-100 rounded-full">
-                  <p className="text-sm text-stone-400 font-mono tracking-wider">{user.uid.slice(0, 8)}...</p>
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="w-full py-4 px-4 bg-transparent border-2 border-stone-300 text-stone-500 hover:text-stone-700 hover:bg-stone-50 hover:border-stone-400 rounded-2xl font-bold transition-all duration-200"
-              >
-                ログアウト
-              </button>
-            </>
-          ) : (
-            // ログインしていない時
-            <>
-              <div className="space-y-4">
-                <p className="text-stone-600 leading-relaxed font-medium">
-                  カフェのレシピを覚えましょう。<br />
-                  <span className="text-sm text-stone-400">プロフェッショナルなスキルを磨く場所</span>
-                </p>
-              </div>
-              <button
-                onClick={handleLogin}
-                className="w-full py-4 px-6 bg-[#004d40] hover:bg-[#00382e] text-white rounded-2xl font-bold text-lg shadow-lg shadow-emerald-900/20 transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                デモ入店する (Guest)
-              </button>
-            </>
-          )}
-        </div>
-
-      </div>
-    </div>
+    <main className="min-h-screen bg-slate-50">
+      {/* ログインしていればレシピ一覧、していなければウェルカム画面を表示 */}
+      {user ? (
+        <RecipeListScreen onLogout={handleLogout} />
+      ) : (
+        // onLoginという名前で関数を渡す（WelcomeScreen側でこれを受け取る必要があります！）
+        <WelcomeScreen onLogin={handleLogin} />
+      )}
+    </main>
   );
 }
