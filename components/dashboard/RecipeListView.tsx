@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { Coffee, Clock, Eye, EyeOff, CheckSquare, Square } from "lucide-react"
+import { Coffee, Clock, Eye, EyeOff, CheckSquare, Square, CheckCircle2 } from "lucide-react"
 
 interface RecipeListViewProps {
     recipes: any[] // Using any to accept the extended helper recipe object
@@ -14,6 +14,7 @@ interface RecipeListViewProps {
     onSelectOne: (id: string) => void
     onSelectAll: () => void
     isReadOnly?: boolean
+    totalStaffCount?: number
 }
 
 export function RecipeListView({
@@ -24,7 +25,8 @@ export function RecipeListView({
     selectedRecipeIds,
     onSelectOne,
     onSelectAll,
-    isReadOnly = false
+    isReadOnly = false,
+    totalStaffCount = 0
 }: RecipeListViewProps) {
     if (recipes.length === 0) {
         return (
@@ -64,6 +66,7 @@ export function RecipeListView({
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-12"></th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">Category</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24 text-center">Read</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-16 text-center">Visible</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-48 hidden lg:table-cell">Tags</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32 hidden xl:table-cell">Created</th>
@@ -125,6 +128,16 @@ export function RecipeListView({
                                     ) : (
                                         <span className="text-gray-400 text-xs">-</span>
                                     )}
+                                </td>
+                                <td className="py-3 px-4 align-middle text-center">
+                                    <div className="flex items-center justify-center gap-1.5 text-xs font-medium" title={`Read by ${recipe.readBy?.length || 0} / ${totalStaffCount} Staff`}>
+                                        <CheckCircle2 className={`w-4 h-4 ${recipe.readBy?.length === totalStaffCount && totalStaffCount > 0 ? "text-green-600" : "text-gray-400"}`} />
+                                        <span className={recipe.readBy?.length === totalStaffCount && totalStaffCount > 0 ? "text-green-700 font-bold" : "text-gray-500"}>
+                                            {recipe.readBy?.length || 0}
+                                            <span className="text-gray-300 mx-0.5">/</span>
+                                            {totalStaffCount}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td className="py-3 px-4 align-middle text-center">
                                     <button

@@ -46,6 +46,7 @@ export type Recipe = {
     updatedAt: Date;
     createdAt: Date;
     isVisible?: boolean; // 表示・非表示フラグ
+    readBy?: string[]; // 既読ユーザーIDリスト
 };
 
 // 既読ログ

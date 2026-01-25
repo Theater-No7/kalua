@@ -27,7 +27,7 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import { doc, writeBatch } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { Coffee, EyeOff, LayoutGrid } from "lucide-react"
+import { Coffee, EyeOff, LayoutGrid, Eye, CheckCircle2 } from "lucide-react"
 
 // Types
 interface HelperRecipe {
@@ -39,6 +39,7 @@ interface HelperRecipe {
     image?: string
     isVisible?: boolean // Display Flag
     tags?: string[]
+    readBy?: string[]
 }
 
 interface RecipeBoardViewProps {
@@ -47,11 +48,12 @@ interface RecipeBoardViewProps {
     categories: { id: string; name: string }[]
     onSelect: (recipe: any) => void
     isReadOnly?: boolean
+    totalStaffCount?: number
 }
 
 const UNNAMED_ID = "uncategorized"
 
-export function RecipeBoardView({ shopId, recipes, categories, onSelect, isReadOnly }: RecipeBoardViewProps) {
+export function RecipeBoardView({ shopId, recipes, categories, onSelect, isReadOnly, totalStaffCount = 0 }: RecipeBoardViewProps) {
     // Local State for Optimistic UI
     const [localRecipes, setLocalRecipes] = useState<HelperRecipe[]>(recipes)
     const [activeId, setActiveId] = useState<string | null>(null)
@@ -301,6 +303,7 @@ export function RecipeBoardView({ shopId, recipes, categories, onSelect, isReadO
                         isUncategorized
                         activeId={activeId}
                         isReadOnly={isReadOnly}
+                        totalStaffCount={totalStaffCount}
                     />
 
                     {/* Category Columns */}
@@ -314,6 +317,7 @@ export function RecipeBoardView({ shopId, recipes, categories, onSelect, isReadO
                             onSelect={onSelect}
                             activeId={activeId}
                             isReadOnly={isReadOnly}
+                            totalStaffCount={totalStaffCount}
                         />
                     ))}
                 </div>
@@ -341,9 +345,10 @@ interface BoardColumnProps {
     isUncategorized?: boolean
     activeId?: string | null
     isReadOnly?: boolean
+    totalStaffCount?: number
 }
 
-function BoardColumn({ id, title, count, items, onSelect, isUncategorized, activeId, isReadOnly }: BoardColumnProps) {
+function BoardColumn({ id, title, count, items, onSelect, isUncategorized, activeId, isReadOnly, totalStaffCount }: BoardColumnProps) {
     // Droppable for the Container (Still enabled to receive if dragging works, but if readOnly items are disabled, no drag starts)
     const { setNodeRef, isOver } = useDroppable({
         id: id,
@@ -384,6 +389,7 @@ function BoardColumn({ id, title, count, items, onSelect, isUncategorized, activ
                             recipe={recipe}
                             onSelect={onSelect}
                             isReadOnly={isReadOnly}
+                            totalStaffCount={totalStaffCount}
                         />
                     ))}
                 </SortableContext>
@@ -408,9 +414,10 @@ interface SortableItemProps {
     recipe: HelperRecipe
     onSelect: (r: any) => void
     isReadOnly?: boolean
+    totalStaffCount?: number
 }
 
-function SortableItem({ uniqueId, recipe, onSelect, isReadOnly }: SortableItemProps) {
+function SortableItem({ uniqueId, recipe, onSelect, isReadOnly, totalStaffCount }: SortableItemProps) {
     const {
         attributes,
         listeners,
@@ -431,7 +438,7 @@ function SortableItem({ uniqueId, recipe, onSelect, isReadOnly }: SortableItemPr
 
     return (
         <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-            <BoardCard recipe={recipe} onClick={() => onSelect(recipe)} isReadOnly={isReadOnly} />
+            <BoardCard recipe={recipe} onClick={() => onSelect(recipe)} isReadOnly={isReadOnly} totalStaffCount={totalStaffCount} />
         </div>
     )
 }
@@ -441,9 +448,10 @@ interface BoardCardProps {
     onClick?: () => void
     isOverlay?: boolean
     isReadOnly?: boolean
+    totalStaffCount?: number
 }
 
-function BoardCard({ recipe, onClick, isOverlay, isReadOnly }: BoardCardProps) {
+function BoardCard({ recipe, onClick, isOverlay, isReadOnly, totalStaffCount = 0 }: BoardCardProps) {
     const isHidden = recipe.isVisible === false
 
     // Use SINGLE display name if available, else standard fallback
@@ -493,6 +501,14 @@ function BoardCard({ recipe, onClick, isOverlay, isReadOnly }: BoardCardProps) {
                         ) : (
                             <span className="text-[10px] text-gray-300 italic">No Tags</span>
                         )}
+                    </div>
+
+                    {/* Footer: Read Count */}
+                    <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-end gap-1 text-[10px]">
+                        <CheckCircle2 className={`w-3 h-3 ${recipe.readBy?.length === totalStaffCount && totalStaffCount > 0 ? "text-green-600" : "text-gray-400"}`} />
+                        <span className={`font-medium ${recipe.readBy?.length === totalStaffCount && totalStaffCount > 0 ? "text-green-700" : "text-gray-400"}`}>
+                            {recipe.readBy?.length || 0}/{totalStaffCount}
+                        </span>
                     </div>
                 </div>
             </div>

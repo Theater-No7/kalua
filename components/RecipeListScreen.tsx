@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react"
 import { Search, Plus, LayoutList, Kanban, Filter, Trash2, Eye, EyeOff, CheckSquare, X } from "lucide-react"
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, writeBatch } from "firebase/firestore"
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, writeBatch, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 import { AddRecipeModal } from "./AddRecipeModal"
@@ -37,6 +37,7 @@ export interface Recipe {
     steps?: string
     createdAt?: any
     isVisible?: boolean // Display Flag
+    readBy?: string[]
 }
 
 import { useAuth } from "@/contexts/AuthContext"
@@ -100,6 +101,41 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
             setRecipes(recipesData)
         })
         return () => unsubscribe()
+    }, [shopId])
+
+    // Fetch Staff Count
+    const [totalStaffCount, setTotalStaffCount] = useState(0)
+    useEffect(() => {
+        if (!shopId) return
+        const fetchStaffCount = async () => {
+            try {
+                // Fetch all users for this shop
+                const q = query(collection(db, "users"), where("shopId", "==", shopId))
+                const snapshot = await getDocs(q)
+
+                // Count logic: Filter for 'staff' role (or anything not 'owner')
+                // Handling case variations just in case
+                const staff = snapshot.docs.filter(doc => {
+                    const data = doc.data()
+                    const r = (data.role || "").toLowerCase()
+                    return r === 'staff' || (r !== 'owner' && r !== '') // Assume fallback to staff if not owner?
+                    // Let's stick to strict 'staff' if possible, but debug users might use STAFF.
+                    // The user prompt said: "role: 'STAFF'" in the request description.
+                })
+
+                // Simplest robust logic: count everyone except known owners?
+                // Or just count `role` that includes 'staff' (case insensitive).
+                const count = snapshot.docs.filter(doc => {
+                    const r = String(doc.data().role || "").toUpperCase()
+                    return r === 'STAFF'
+                }).length
+
+                setTotalStaffCount(count)
+            } catch (e) {
+                console.error("Failed to fetch staff count", e)
+            }
+        }
+        fetchStaffCount()
     }, [shopId])
 
     // Maintain a Derived List of Recipes with resolved Category Data
@@ -430,6 +466,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                                                     onSelectOne={handleSelectOne}
                                                     onSelectAll={handleSelectAll}
                                                     isReadOnly={role === 'STAFF'} // Pass ReadOnly
+                                                    totalStaffCount={totalStaffCount}
                                                 />
                                             </div>
                                         ) : (
@@ -446,6 +483,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                                                         }
                                                     }}
                                                     isReadOnly={role === 'STAFF'}
+                                                    totalStaffCount={totalStaffCount}
                                                 />
                                             </div>
                                         )}
