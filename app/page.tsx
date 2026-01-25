@@ -1,61 +1,16 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { onAuthStateChanged, User, signOut } from "firebase/auth"
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore"
-import { auth, db } from "@/lib/firebase"
+import React from "react"
+import { useAuth } from "@/contexts/AuthContext"
 import { Loader2 } from "lucide-react"
 
 import { WelcomeScreen } from "@/components/WelcomeScreen"
 import { RecipeListScreen } from "@/components/RecipeListScreen"
-import { CreateShopScreen } from "@/components/CreateShopScreen" // 追加
+import { CreateShopScreen } from "@/components/CreateShopScreen"
+import { DebugLoginPanel } from "@/components/debug/DebugLoginPanel"
 
 export default function Page() {
-  const [user, setUser] = useState<User | null>(null)
-  const [shopId, setShopId] = useState<string | null>(null) // shopIdを持つ
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser)
-
-      if (currentUser) {
-        try {
-          const userRef = doc(db, "users", currentUser.uid)
-          const userSnap = await getDoc(userRef)
-
-          if (userSnap.exists()) {
-            // ユーザーデータがあるなら、shopIdを持っているか確認
-            const userData = userSnap.data()
-            if (userData.shopId) {
-              setShopId(userData.shopId)
-            }
-          } else {
-            // ユーザーデータがない場合（新規作成）
-            await setDoc(userRef, {
-              id: currentUser.uid,
-              name: currentUser.displayName || (currentUser.isAnonymous ? "ゲストスタッフ" : "No Name"),
-              photoURL: currentUser.photoURL || null,
-              createdAt: serverTimestamp(),
-            })
-          }
-        } catch (error) {
-          console.error("User DB sync failed:", error)
-        }
-      } else {
-        setShopId(null)
-      }
-
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
-  }, [])
-
-  const handleLogout = async () => {
-    await signOut(auth)
-    setShopId(null)
-  }
+  const { user, shopId, role, loading, logout: handleLogout } = useAuth()
 
   if (loading) {
     return (
@@ -65,22 +20,49 @@ export default function Page() {
     )
   }
 
-  // 1. 未ログイン -> Welcome画面
+  return (
+    <>
+      <MainContent
+        user={user}
+        shopId={shopId}
+        role={role}
+        handleLogout={handleLogout}
+      />
+      <DebugLoginPanel />
+    </>
+  )
+}
+
+function MainContent({ user, shopId, role, handleLogout }: any) {
+  // 1. Unauthenticated -> Welcome (Allow login)
+  // Note: WelcomeScreen likely handles "Real" login via its own buttons calling Liff/Firebase.
+  // We rely on AuthContext to pick up the change.
   if (!user) {
-    return <WelcomeScreen onLogin={() => { }} />
+    return <WelcomeScreen onLogin={() => {
+      // Logic handled inside internal buttons usually, or trigger Liff login here
+    }} />
   }
 
-  // 2. ログイン済みだが、店がない -> 店舗作成画面
+  // 2. Authenticated but No Shop -> Create Shop
   if (!shopId) {
     return (
       <CreateShopScreen
         userId={user.uid}
-        onShopCreated={(newId) => setShopId(newId)}
+        onShopCreated={(newId) => {
+          // In real app, Context should update automatically via Firestore listener.
+          // But if we need manual trigger or reload, we might need handle logic.
+          // For now assume standard flow updates DB -> Context updates.
+          window.location.reload() // Simple sync for now
+        }}
       />
     )
   }
 
-  // 3. 店がある -> レシピ一覧（shopIdを渡す！）
+  // 3. Authenticated & Shop Exists -> Main Dashboard
+
+  // Future: Routing based on Role
+  // if (role === 'STAFF') return <StaffScreen ... />
+
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl overflow-hidden md:max-w-none md:w-full md:mx-0 md:h-screen md:flex md:shadow-none">
       <RecipeListScreen shopId={shopId} onLogout={handleLogout} />
