@@ -21,7 +21,10 @@ interface Member {
     photoURL?: string
 }
 
+import { useAuth } from "@/contexts/AuthContext"
+
 export function ShopSettingsModal({ isOpen, onClose, shopId, onLogout }: ShopSettingsModalProps) {
+    const { role } = useAuth()
     const [copied, setCopied] = useState(false)
     const [members, setMembers] = useState<Member[]>([]) // メンバー一覧
     const [loading, setLoading] = useState(false)
@@ -104,84 +107,88 @@ export function ShopSettingsModal({ isOpen, onClose, shopId, onLogout }: ShopSet
                 {/* コンテンツ（スクロール可能に） */}
                 <div className="p-6 space-y-6 overflow-y-auto">
 
-                    {/* カテゴリ管理ボタン (New!) */}
-                    <button
-                        onClick={() => setCurrentView("categories")}
-                        className="w-full py-4 text-[#0f766e] font-bold bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors flex items-center justify-center gap-2 border border-emerald-100"
-                    >
-                        <Grid className="w-5 h-5" />
-                        Edit Categories
-                    </button>
-
-                    <hr className="border-gray-100" />
-
-                    {/* 招待コード */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                            Staff Invite Code
-                        </label>
-                        <div className="flex items-center gap-2">
-                            <code className="flex-1 bg-gray-100 p-3 rounded-xl text-gray-700 font-mono text-sm border border-gray-200 truncate">
-                                {shopId}
-                            </code>
+                    {/* オーナー専用: カテゴリ設定・招待コード・メンバーリスト */}
+                    {role === 'OWNER' && (
+                        <>
+                            {/* カテゴリ管理ボタン (New!) */}
                             <button
-                                onClick={handleCopyId}
-                                className={`p-3 rounded-xl transition-all ${copied
-                                    ? "bg-green-500 text-white shadow-lg shadow-green-200"
-                                    : "bg-gray-800 text-white hover:bg-gray-900 shadow-lg"
-                                    }`}
+                                onClick={() => setCurrentView("categories")}
+                                className="w-full py-4 text-[#0f766e] font-bold bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors flex items-center justify-center gap-2 border border-emerald-100"
                             >
-                                {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                                <Grid className="w-5 h-5" />
+                                Edit Categories
                             </button>
-                        </div>
-                        <p className="text-[10px] text-gray-400">
-                            このIDをスタッフに共有してください
-                        </p>
-                    </div>
 
-                    <hr className="border-gray-100" />
+                            <hr className="border-gray-100" />
 
-                    {/* メンバーリスト */}
-                    <div>
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <Users className="w-4 h-4" /> Team Members ({members.length})
-                        </h3>
+                            {/* 招待コード */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                    Staff Invite Code
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <code className="flex-1 bg-gray-100 p-3 rounded-xl text-gray-700 font-mono text-sm border border-gray-200 truncate">
+                                        {shopId}
+                                    </code>
+                                    <button
+                                        onClick={handleCopyId}
+                                        className={`p-3 rounded-xl transition-all ${copied
+                                            ? "bg-green-500 text-white shadow-lg shadow-green-200"
+                                            : "bg-gray-800 text-white hover:bg-gray-900 shadow-lg"
+                                            }`}
+                                    >
+                                        {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-gray-400">
+                                    このIDをスタッフに共有してください
+                                </p>
+                            </div>
 
-                        <div className="space-y-3">
-                            {loading ? (
-                                <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
-                            ) : members.length > 0 ? (
-                                members.map((member) => (
-                                    <div key={member.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                        {/* アイコン */}
-                                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gray-200 overflow-hidden shrink-0">
-                                            {member.photoURL ? (
-                                                <img src={member.photoURL} alt={member.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <UserCircle2 className="w-6 h-6 text-gray-300" />
-                                            )}
-                                        </div>
+                            <hr className="border-gray-100" />
 
-                                        {/* 名前と役職 */}
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-gray-800 text-sm truncate">{member.name}</p>
-                                            <p className="text-xs text-gray-500 flex items-center gap-1">
-                                                {member.role === 'owner' ? (
-                                                    <span className="text-amber-500 flex items-center gap-1 font-medium"><Crown className="w-3 h-3" /> Owner</span>
-                                                ) : (
-                                                    "Staff"
-                                                )}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-sm text-gray-400 italic">メンバーがいません</p>
-                            )}
-                        </div>
-                    </div>
+                            {/* メンバーリスト */}
+                            <div>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Users className="w-4 h-4" /> Team Members ({members.length})
+                                </h3>
 
-                    <hr className="border-gray-100" />
+                                <div className="space-y-3">
+                                    {loading ? (
+                                        <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
+                                    ) : members.length > 0 ? (
+                                        members.map((member) => (
+                                            <div key={member.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                                {/* アイコン */}
+                                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gray-200 overflow-hidden shrink-0">
+                                                    {member.photoURL ? (
+                                                        <img src={member.photoURL} alt={member.name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <UserCircle2 className="w-6 h-6 text-gray-300" />
+                                                    )}
+                                                </div>
+
+                                                {/* 名前と役職 */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-gray-800 text-sm truncate">{member.name}</p>
+                                                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                                                        {member.role === 'owner' ? (
+                                                            <span className="text-amber-500 flex items-center gap-1 font-medium"><Crown className="w-3 h-3" /> Owner</span>
+                                                        ) : (
+                                                            "Staff"
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-gray-400 italic">メンバーがいません</p>
+                                    )}
+                                </div>
+                            </div>
+                            <hr className="border-gray-100" />
+                        </>
+                    )}
 
                     {/* ログアウトボタン */}
                     {onLogout && (

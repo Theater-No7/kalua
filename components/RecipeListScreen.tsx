@@ -39,13 +39,16 @@ export interface Recipe {
     isVisible?: boolean // Display Flag
 }
 
+import { useAuth } from "@/contexts/AuthContext"
+
 interface RecipeListScreenProps {
     shopId: string
     onLogout?: () => void
 }
 
 export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
-    // ------------------------------------------------------------
+    const { role } = useAuth()
+    // ...
     // States
     // ------------------------------------------------------------
     const [recipes, setRecipes] = useState<Recipe[]>([])
@@ -290,6 +293,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                             setIsMobileModalOpen(true)
                         }}
                         onDelete={() => handleDeleteRecipe(selectedRecipe.id)}
+                        isReadOnly={role === 'STAFF'}
                     />
                 )}
             </div>
@@ -313,7 +317,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                         </button>
                     </div>
 
-                    {activeTab === "recipes" && (
+                    {activeTab === "recipes" && role === 'OWNER' && (
                         <button
                             onClick={handleCreateNew}
                             className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#0f766e] text-white rounded-lg font-bold hover:bg-[#0d6560] transition-colors shadow-sm"
@@ -421,10 +425,11 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                                                     selectedId={isEditing && selectedRecipe ? selectedRecipe.id : undefined}
                                                     onToggleVisibility={handleToggleVisibility}
 
-                                                    // Selection Props
+                                                    // Selection Props (Hide for Staff)
                                                     selectedRecipeIds={selectedRecipeIds}
                                                     onSelectOne={handleSelectOne}
                                                     onSelectAll={handleSelectAll}
+                                                    isReadOnly={role === 'STAFF'} // Pass ReadOnly
                                                 />
                                             </div>
                                         ) : (
@@ -433,7 +438,14 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                                                     shopId={shopId}
                                                     recipes={filteredRecipes}
                                                     categories={categories}
-                                                    onSelect={handleDesktopSelect}
+                                                    onSelect={(recipe) => {
+                                                        if (window.innerWidth < 768) {
+                                                            handleMobileSelect(recipe)
+                                                        } else {
+                                                            handleDesktopSelect(recipe)
+                                                        }
+                                                    }}
+                                                    isReadOnly={role === 'STAFF'}
                                                 />
                                             </div>
                                         )}
@@ -498,6 +510,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                                     setIsEditing(false)
                                     setSelectedRecipe(null)
                                 }}
+                                isReadOnly={role === 'STAFF'}
                             />
                         </>
                     )}
@@ -536,7 +549,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
 
                 </div>
 
-                {activeTab === "recipes" && (
+                {activeTab === "recipes" && role === 'OWNER' && (
                     <button
                         onClick={handleCreateNew}
                         className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-[#0f766e] rounded-full flex items-center justify-center shadow-lg hover:bg-[#0d6560] transition-colors z-20"

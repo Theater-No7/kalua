@@ -68,10 +68,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (currentUser) {
                     setUser(currentUser)
                     // Fetch generic user data and shopId
+                    // Fetch generic user data and shopId
                     // Note: In real app, "role" might be in custom claims or DB.
                     // For now, if logged in via Firebase, we assume "OWNER" behavior or "STAFF" if anonymous?
-                    // Let's keep existing logic: Owner logic mostly.
-                    setRole("OWNER")
+                    if (currentUser.isAnonymous) {
+                        setRole("STAFF")
+                    } else {
+                        setRole("OWNER")
+                    }
 
                     try {
                         const userRef = doc(db, "users", currentUser.uid)

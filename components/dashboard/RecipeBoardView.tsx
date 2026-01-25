@@ -46,11 +46,12 @@ interface RecipeBoardViewProps {
     recipes: HelperRecipe[]
     categories: { id: string; name: string }[]
     onSelect: (recipe: any) => void
+    isReadOnly?: boolean
 }
 
 const UNNAMED_ID = "uncategorized"
 
-export function RecipeBoardView({ shopId, recipes, categories, onSelect }: RecipeBoardViewProps) {
+export function RecipeBoardView({ shopId, recipes, categories, onSelect, isReadOnly }: RecipeBoardViewProps) {
     // Local State for Optimistic UI
     const [localRecipes, setLocalRecipes] = useState<HelperRecipe[]>(recipes)
     const [activeId, setActiveId] = useState<string | null>(null)
@@ -131,6 +132,7 @@ export function RecipeBoardView({ shopId, recipes, categories, onSelect }: Recip
 
     // Drag Handlers
     const handleDragStart = (event: DragStartEvent) => {
+        if (isReadOnly) return
         const { active } = event
         const recipeId = active.id as string
         const recipe = localRecipes.find(r => r.id === recipeId)
@@ -139,6 +141,7 @@ export function RecipeBoardView({ shopId, recipes, categories, onSelect }: Recip
     }
 
     const handleDragOver = (event: DragOverEvent) => {
+        if (isReadOnly) return
         const { active, over } = event
         if (!over) return
 
@@ -182,6 +185,12 @@ export function RecipeBoardView({ shopId, recipes, categories, onSelect }: Recip
     }
 
     const handleDragEnd = async (event: DragEndEvent) => {
+        if (isReadOnly) {
+            setActiveId(null)
+            setActiveItem(null)
+            return
+        }
+
         const { active, over } = event
         setActiveId(null)
         setActiveItem(null)
@@ -193,7 +202,6 @@ export function RecipeBoardView({ shopId, recipes, categories, onSelect }: Recip
         // However, we should verify the final state or just persist the move.
 
         const recipeId = active.id as string
-        const finalContainer = findContainer(recipeId)
         // This findContainer uses the *updated* columns from render, 
         // but verify if `columns` definition has updated yet? 
         // It should have re-rendered.
@@ -278,6 +286,9 @@ export function RecipeBoardView({ shopId, recipes, categories, onSelect }: Recip
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
+            // We can't easily "disable" DndContext via prop, but we can prevent drag from starting 
+            // by using `disabled` props on Sortable items or checking isReadOnly in handlers.
+            // Disabling useSortable items is the recommended way.
             >
                 <div className="flex h-full p-6 gap-6 min-w-max">
                     {/* Uncategorized Column */}
@@ -289,6 +300,7 @@ export function RecipeBoardView({ shopId, recipes, categories, onSelect }: Recip
                         onSelect={onSelect}
                         isUncategorized
                         activeId={activeId}
+                        isReadOnly={isReadOnly}
                     />
 
                     {/* Category Columns */}
@@ -301,6 +313,7 @@ export function RecipeBoardView({ shopId, recipes, categories, onSelect }: Recip
                             items={columns[cat.id] || []}
                             onSelect={onSelect}
                             activeId={activeId}
+                            isReadOnly={isReadOnly}
                         />
                     ))}
                 </div>
@@ -327,25 +340,25 @@ interface BoardColumnProps {
     onSelect: (recipe: any) => void
     isUncategorized?: boolean
     activeId?: string | null
+    isReadOnly?: boolean
 }
 
-function BoardColumn({ id, title, count, items, onSelect, isUncategorized, activeId }: BoardColumnProps) {
-    // Droppable for the Container
+function BoardColumn({ id, title, count, items, onSelect, isUncategorized, activeId, isReadOnly }: BoardColumnProps) {
+    // Droppable for the Container (Still enabled to receive if dragging works, but if readOnly items are disabled, no drag starts)
     const { setNodeRef, isOver } = useDroppable({
         id: id,
-        data: { type: 'Container', categoryId: id }
+        data: { type: 'Container', categoryId: id },
+        disabled: isReadOnly // Disable droppable too
     })
 
     // Background Active Logic:
-    // 1. isOver the container directly
-    // 2. OR the active item is logically "inside" this column (due to onDragOver update)
     const isActive = isOver || (activeId ? items.some(i => i.id === activeId) : false)
 
     return (
         <div
             ref={setNodeRef} // Apply Ref to optimal outer wrapper
             className={`flex flex-col w-80 h-full max-h-full rounded-2xl border flex-shrink-0 transition-colors duration-200
-                ${isActive ? "bg-gray-200 border-emerald-400/50" : "bg-gray-100/50 border-gray-200/50"}
+                ${isActive && !isReadOnly ? "bg-gray-200 border-emerald-400/50" : "bg-gray-100/50 border-gray-200/50"}
             `}
         >
             {/* Header */}
@@ -370,13 +383,19 @@ function BoardColumn({ id, title, count, items, onSelect, isUncategorized, activ
                             uniqueId={recipe.id}
                             recipe={recipe}
                             onSelect={onSelect}
+                            isReadOnly={isReadOnly}
                         />
                     ))}
                 </SortableContext>
 
-                {items.length === 0 && (
+                {items.length === 0 && !isReadOnly && (
                     <div className="h-full w-full flex items-center justify-center text-gray-400 text-xs italic pointer-events-none min-h-[100px]">
                         Drop here
+                    </div>
+                )}
+                {items.length === 0 && isReadOnly && (
+                    <div className="h-full w-full flex items-center justify-center text-gray-300 text-xs italic min-h-[50px]">
+                        Empty
                     </div>
                 )}
             </div>
@@ -388,9 +407,10 @@ interface SortableItemProps {
     uniqueId: string
     recipe: HelperRecipe
     onSelect: (r: any) => void
+    isReadOnly?: boolean
 }
 
-function SortableItem({ uniqueId, recipe, onSelect }: SortableItemProps) {
+function SortableItem({ uniqueId, recipe, onSelect, isReadOnly }: SortableItemProps) {
     const {
         attributes,
         listeners,
@@ -398,7 +418,10 @@ function SortableItem({ uniqueId, recipe, onSelect }: SortableItemProps) {
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: uniqueId })
+    } = useSortable({
+        id: uniqueId,
+        disabled: isReadOnly
+    })
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -408,7 +431,7 @@ function SortableItem({ uniqueId, recipe, onSelect }: SortableItemProps) {
 
     return (
         <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-            <BoardCard recipe={recipe} onClick={() => onSelect(recipe)} />
+            <BoardCard recipe={recipe} onClick={() => onSelect(recipe)} isReadOnly={isReadOnly} />
         </div>
     )
 }
@@ -417,9 +440,10 @@ interface BoardCardProps {
     recipe: HelperRecipe
     onClick?: () => void
     isOverlay?: boolean
+    isReadOnly?: boolean
 }
 
-function BoardCard({ recipe, onClick, isOverlay }: BoardCardProps) {
+function BoardCard({ recipe, onClick, isOverlay, isReadOnly }: BoardCardProps) {
     const isHidden = recipe.isVisible === false
 
     // Use SINGLE display name if available, else standard fallback
@@ -429,8 +453,8 @@ function BoardCard({ recipe, onClick, isOverlay }: BoardCardProps) {
         <div
             onClick={onClick}
             className={`
-                bg-white p-3 rounded-xl border shadow-sm cursor-grab active:cursor-grabbing text-left
-                group hover:border-emerald-500/30 hover:shadow-md transition-all
+                bg-white p-3 rounded-xl border shadow-sm text-left
+                ${isReadOnly ? "cursor-default" : "cursor-grab active:cursor-grabbing group hover:border-emerald-500/30 hover:shadow-md transition-all"}
                 ${isOverlay ? "scale-105 shadow-xl border-emerald-500 rotate-2 cursor-grabbing" : "border-gray-200"}
                 ${isHidden ? "opacity-60 grayscale" : ""}
             `}

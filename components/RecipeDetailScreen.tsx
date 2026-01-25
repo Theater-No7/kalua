@@ -15,6 +15,7 @@ interface Recipe {
     ingredients?: string[]
     steps?: string
     isFavorite?: boolean
+    isVisible?: boolean
 }
 
 interface RecipeDetailScreenProps {
@@ -22,12 +23,29 @@ interface RecipeDetailScreenProps {
     onBack: () => void
     onEdit: () => void
     onDelete: () => void
+    isReadOnly?: boolean
 }
 
-export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete }: RecipeDetailScreenProps) {
+export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnly = false }: RecipeDetailScreenProps) {
     const [checkedIngredients, setCheckedIngredients] = useState<number[]>([])
 
     const catName = recipe.displayCategoryName || recipe.category
+
+    // For Staff: Toggle Visibility Logic
+    const [isUpdating, setIsUpdating] = useState(false)
+    const [localIsVisible, setLocalIsVisible] = useState(recipe.isVisible !== false) // Default true if undefined
+
+    // We need shopId to update Firestore. 
+    // However, RecipeDetailScreen currently doesn't receive shopId.
+    // We should probably pass shopId or a update callback.
+    // Given the previous pattern, maybe onUpdate?
+    // User request: "Staff can toggle Sold Out". 
+    // Let's assume we need to add standard visibility toggle logic here or passing a handler is better.
+    // Existing code passes onEdit/onDelete.
+    // Let's add onToggleVisibility?
+    // Actually the request says "In reader view, allow Sold Out toggle".
+    // I need to implement the toggle.
+    // I can modify props to take `onToggleVisibility`.
 
     const toggleIngredient = (index: number) => {
         if (checkedIngredients.includes(index)) {
@@ -63,21 +81,34 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete }: RecipeD
 
                 {/* 操作ボタンエリア（右上） */}
                 <div className="absolute top-4 right-4 flex gap-3 z-10">
-                    {/* 削除ボタン */}
-                    <button
-                        onClick={onDelete}
-                        className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors shadow-sm"
-                    >
-                        <Trash2 className="w-5 h-5" />
-                    </button>
+                    {!isReadOnly ? (
+                        <>
+                            {/* 削除ボタン */}
+                            <button
+                                onClick={onDelete}
+                                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors shadow-sm"
+                            >
+                                <Trash2 className="w-5 h-5" />
+                            </button>
 
-                    {/* 編集ボタン */}
-                    <button
-                        onClick={onEdit}
-                        className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-gray-700 hover:bg-white transition-colors shadow-sm"
-                    >
-                        <Edit2 className="w-5 h-5" />
-                    </button>
+                            {/* 編集ボタン */}
+                            <button
+                                onClick={onEdit}
+                                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-gray-700 hover:bg-white transition-colors shadow-sm"
+                            >
+                                <Edit2 className="w-5 h-5" />
+                            </button>
+                        </>
+                    ) : (
+                        /* Staff Read-Only Actions (Sold Out Toggle) */
+                        /* Note: We need a handler for this. For now let's just show a badge or toggle if we had the handler. */
+                        /* The prompt asks to allow toggling. */
+                        /* We didn't pass onToggleVisibility yet. */
+                        /* Let's rely on the parent updating or just show "Reader Mode" for now and I will add the toggle handler next step. */
+                        <div className="bg-black/40 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/20 font-bold">
+                            Staff View
+                        </div>
+                    )}
                 </div>
             </div>
 

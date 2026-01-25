@@ -13,6 +13,7 @@ interface RecipeListViewProps {
     selectedRecipeIds: Set<string>
     onSelectOne: (id: string) => void
     onSelectAll: () => void
+    isReadOnly?: boolean
 }
 
 export function RecipeListView({
@@ -22,7 +23,8 @@ export function RecipeListView({
     selectedId,
     selectedRecipeIds,
     onSelectOne,
-    onSelectAll
+    onSelectAll,
+    isReadOnly = false
 }: RecipeListViewProps) {
     if (recipes.length === 0) {
         return (
@@ -44,18 +46,20 @@ export function RecipeListView({
                 <thead className="bg-gray-50/80 backdrop-blur sticky top-0 z-10 border-b border-gray-200">
                     <tr>
                         {/* Checkbox Column */}
-                        <th className="py-3 pl-4 pr-2 w-10 align-middle hidden md:table-cell">
-                            <button
-                                onClick={onSelectAll}
-                                className="text-gray-400 hover:text-gray-600 transition-colors flex items-center"
-                            >
-                                {allSelected ? (
-                                    <CheckSquare className="w-5 h-5 text-[#0f766e]" />
-                                ) : (
-                                    <Square className={`w-5 h-5 ${someSelected && !allSelected ? "text-[#0f766e] fill-emerald-100" : ""}`} />
-                                )}
-                            </button>
-                        </th>
+                        {!isReadOnly && (
+                            <th className="py-3 pl-4 pr-2 w-10 align-middle hidden md:table-cell">
+                                <button
+                                    onClick={onSelectAll}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors flex items-center"
+                                >
+                                    {allSelected ? (
+                                        <CheckSquare className="w-5 h-5 text-[#0f766e]" />
+                                    ) : (
+                                        <Square className={`w-5 h-5 ${someSelected && !allSelected ? "text-[#0f766e] fill-emerald-100" : ""}`} />
+                                    )}
+                                </button>
+                            </th>
+                        )}
 
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-12"></th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</th>
@@ -82,18 +86,20 @@ export function RecipeListView({
                                 `}
                             >
                                 {/* Checkbox Cell */}
-                                <td className="py-3 pl-4 pr-2 align-middle hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                        onClick={() => onSelectOne(recipe.id)}
-                                        className="text-gray-400 hover:text-gray-600 transition-colors flex items-center"
-                                    >
-                                        {isSelected ? (
-                                            <CheckSquare className="w-5 h-5 text-[#0f766e]" />
-                                        ) : (
-                                            <Square className="w-5 h-5" />
-                                        )}
-                                    </button>
-                                </td>
+                                {!isReadOnly && (
+                                    <td className="py-3 pl-4 pr-2 align-middle hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            onClick={() => onSelectOne(recipe.id)}
+                                            className="text-gray-400 hover:text-gray-600 transition-colors flex items-center"
+                                        >
+                                            {isSelected ? (
+                                                <CheckSquare className="w-5 h-5 text-[#0f766e]" />
+                                            ) : (
+                                                <Square className="w-5 h-5" />
+                                            )}
+                                        </button>
+                                    </td>
+                                )}
 
                                 <td className="py-3 px-4 align-middle">
                                     <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">

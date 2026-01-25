@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react"
 import { X, Coffee, Loader2, Save } from "lucide-react"
+import { RecipeReader } from "./RecipeReader"
 import { RecipeForm, RecipeFormHandle } from "../RecipeForm"
 
 interface RecipeSidePanelProps {
@@ -10,9 +11,10 @@ interface RecipeSidePanelProps {
     shopId: string
     editingRecipe?: any
     onSave: () => void
+    isReadOnly?: boolean
 }
 
-export function RecipeSidePanel({ isOpen, onClose, shopId, editingRecipe, onSave }: RecipeSidePanelProps) {
+export function RecipeSidePanel({ isOpen, onClose, shopId, editingRecipe, onSave, isReadOnly = false }: RecipeSidePanelProps) {
     const formRef = useRef<RecipeFormHandle>(null)
     const [isSaving, setIsSaving] = useState(false)
 
@@ -33,6 +35,19 @@ export function RecipeSidePanel({ isOpen, onClose, shopId, editingRecipe, onSave
         } finally {
             setIsSaving(false)
         }
+    }
+
+    if (isReadOnly && editingRecipe) {
+        return (
+            <div className="hidden md:flex flex-col w-[400px] border-l border-gray-100 bg-white h-full sticky top-0 shadow-xl z-20 transition-all duration-300 ease-in-out">
+                <RecipeReader
+                    recipe={editingRecipe}
+                    shopId={shopId}
+                    onClose={onClose}
+                    onUpdate={onSave} // Trigger refresh on sold out toggle
+                />
+            </div>
+        )
     }
 
     return (
