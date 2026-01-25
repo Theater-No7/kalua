@@ -1,34 +1,47 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
-import { Upload, Plus, Loader2, Trash2, X } from "lucide-react"
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react"
+import { Upload, Plus, Loader2, Trash2, X, Eye, EyeOff, Check, Tag } from "lucide-react"
 import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, onSnapshot } from "firebase/firestore"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage"
 import { db, storage } from "@/lib/firebase"
+
+export interface RecipeFormHandle {
+    submit: () => Promise<void>
+}
 
 interface RecipeFormProps {
     shopId: string
     initialData?: any
     onSave: () => void
     onCancel: () => void
+    hideActions?: boolean
 }
 
-export function RecipeForm({ shopId, initialData, onSave, onCancel }: RecipeFormProps) {
+const TAG_PRESETS = ["New", "Seasonal", "Limited", "Sold Out", "Recommended", "Hot", "Iced"]
+
+export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopId, initialData, onSave, onCancel, hideActions }, ref) => {
     // Categories from Firestore
     const [categories, setCategories] = useState<{ id: string, name: string }[]>([])
 
     // Form States
     const [title, setTitle] = useState("")
-    const [category, setCategory] = useState("")
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string>("") // Single Category ID
     const [tags, setTags] = useState<string[]>([])
     const [tagInput, setTagInput] = useState("")
     const [ingredients, setIngredients] = useState<string[]>([""])
     const [steps, setSteps] = useState("")
+    const [isVisible, setIsVisible] = useState(true) // Default true
     const [imageFile, setImageFile] = useState<File | null>(null)
     const [imagePreview, setImagePreview] = useState<string>("")
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    // Expose submit method
+    useImperativeHandle(ref, () => ({
+        submit: handleSubmit
+    }))
 
     // Load Categories
     useEffect(() => {
@@ -41,35 +54,58 @@ export function RecipeForm({ shopId, initialData, onSave, onCancel }: RecipeForm
                 ...doc.data()
             })) as { id: string, name: string }[]
             setCategories(cats)
-
-            // Auto-select first category for new recipes
-            if (!category && !initialData && cats.length > 0) {
-                setCategory(cats[0].name)
-            }
         })
         return () => unsubscribe()
-    }, [shopId, category, initialData])
+    }, [shopId])
 
     // Load Initial Data
     useEffect(() => {
         if (initialData) {
             setTitle(initialData.title || "")
-            setCategory(initialData.category || "")
+
+            // Resolve Category
+            let catId = ""
+            if (initialData.categoryId) {
+                catId = initialData.categoryId
+            } else if (initialData.categoryIds && initialData.categoryIds.length > 0) {
+                // Migration: Take first one
+                catId = initialData.categoryIds[0]
+            } else if (initialData.category) {
+                // Legacy Name Fallback (will be resolved when categories load, or handled in separate effect)
+            }
+            setSelectedCategoryId(catId)
+
             setTags(initialData.tags || [])
             setIngredients(initialData.ingredients && initialData.ingredients.length > 0 ? initialData.ingredients : [""])
             setSteps(initialData.steps || "")
             setImagePreview(initialData.image || "")
+            setIsVisible(initialData.isVisible !== false)
         } else {
-            // Reset for new recipe
+            // Reset
             setTitle("")
-            if (categories.length > 0) setCategory(categories[0].name)
+            setSelectedCategoryId("")
             setTags([])
             setIngredients([""])
             setSteps("")
             setImageFile(null)
             setImagePreview("")
+            setIsVisible(true)
         }
-    }, [initialData]) // Removed categories dependency to avoid loop
+    }, [initialData])
+
+    // Sync Name-to-ID for legacy data if needed
+    useEffect(() => {
+        if (initialData && categories.length > 0 && !selectedCategoryId) {
+            // Try to resolve by name if ID still missing
+            if (initialData.category) {
+                const found = categories.find(c => c.name === initialData.category)
+                if (found) {
+                    setSelectedCategoryId(found.id)
+                }
+            }
+        }
+    }, [initialData, categories, selectedCategoryId])
+
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -100,8 +136,21 @@ export function RecipeForm({ shopId, initialData, onSave, onCancel }: RecipeForm
         }
     }
 
+    const handleAddPresetTag = (tag: string) => {
+        if (!tags.includes(tag)) {
+            setTags([...tags, tag])
+        }
+    }
+
     const handleSubmit = async () => {
-        if (!title) return alert("Please enter a recipe title")
+        if (!title) {
+            alert("Please enter a recipe title")
+            throw new Error("Validation Error")
+        }
+        if (!selectedCategoryId) {
+            alert("Please select a category")
+            throw new Error("Validation Error")
+        }
 
         try {
             setIsSubmitting(true)
@@ -110,20 +159,30 @@ export function RecipeForm({ shopId, initialData, onSave, onCancel }: RecipeForm
 
             if (imageFile) {
                 const fileName = `${Date.now()}_${imageFile.name}`
-                const storageRef = ref(storage, `images/${fileName}`)
-                const snapshot = await uploadBytes(storageRef, imageFile)
+                const imgRef = storageRef(storage, `images/${fileName}`)
+                const snapshot = await uploadBytes(imgRef, imageFile)
                 downloadURL = await getDownloadURL(snapshot.ref)
             }
 
             const cleanIngredients = ingredients.filter(i => i.trim() !== "")
 
+            // Get Category Name for backward compatibility
+            const catName = categories.find(c => c.id === selectedCategoryId)?.name || "Uncategorized";
+
             const recipeData = {
                 title,
-                category,
+
+                // New Single Category Model - strict mapping
+                categoryId: selectedCategoryId,
+                category: catName, // Keep name for legacy displays if needed
+
+                // ABOLISHED: categoryIds. We do not write it anymore.
+
                 tags,
                 image: downloadURL,
                 ingredients: cleanIngredients,
                 steps,
+                isVisible,
                 updatedAt: serverTimestamp(),
             }
 
@@ -131,20 +190,19 @@ export function RecipeForm({ shopId, initialData, onSave, onCancel }: RecipeForm
                 // Update
                 const docRef = doc(db, "stores", shopId, "recipes", initialData.id)
                 await updateDoc(docRef, recipeData)
-                alert("Recipe updated!")
             } else {
                 // Create
                 await addDoc(collection(db, "stores", shopId, "recipes"), {
                     ...recipeData,
                     createdAt: serverTimestamp(),
                 })
-                alert("Recipe saved!")
             }
 
             onSave()
         } catch (error) {
             console.error("Error saving document: ", error)
             alert("Failed to save")
+            throw error // Re-throw to let parent know
         } finally {
             setIsSubmitting(false)
         }
@@ -173,6 +231,23 @@ export function RecipeForm({ shopId, initialData, onSave, onCancel }: RecipeForm
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
             </div>
 
+            {/* Visibility Switch */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${isVisible ? "bg-emerald-100 text-[#0f766e]" : "bg-gray-200 text-gray-500"}`}>
+                        {isVisible ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-gray-800 text-sm">Recipe Visibility</h3>
+                        <p className="text-xs text-gray-400">{isVisible ? "Visible to everyone" : "Hidden from menu"}</p>
+                    </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={isVisible} onChange={(e) => setIsVisible(e.target.checked)} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0f766e]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0f766e]"></div>
+                </label>
+            </div>
+
             {/* Title */}
             <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700">Recipe Name</label>
@@ -185,22 +260,97 @@ export function RecipeForm({ shopId, initialData, onSave, onCancel }: RecipeForm
                 />
             </div>
 
-            {/* Category */}
+            {/* Category (Single Select) */}
             <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Category</label>
+                <div className="flex justify-between items-center">
+                    <label className="text-sm font-semibold text-gray-700">Category <span className="text-red-500">*</span></label>
+                </div>
                 <div className="flex flex-wrap gap-2">
-                    {categories.map((cat) => (
-                        <button
-                            key={cat.id}
-                            onClick={() => setCategory(cat.name)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${category === cat.name
-                                    ? "bg-[#0f766e] text-white shadow-md"
-                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                }`}
-                        >
-                            {cat.name}
-                        </button>
-                    ))}
+                    {categories.map((cat) => {
+                        const isSelected = selectedCategoryId === cat.id
+                        return (
+                            <button
+                                key={cat.id}
+                                onClick={() => setSelectedCategoryId(cat.id)}
+                                className={`
+                                    px-4 py-2 rounded-full text-sm font-bold transition-all border-2
+                                    flex items-center gap-2
+                                    ${isSelected
+                                        ? "bg-[#0f766e] text-white border-[#0f766e] shadow-md"
+                                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                                    }
+                                `}
+                            >
+                                {isSelected && <Check className="w-3.5 h-3.5" />}
+                                {cat.name}
+                            </button>
+                        )
+                    })}
+                </div>
+            </div>
+
+            {/* Tags */}
+            <div className="space-y-3">
+                <label className="text-sm font-semibold text-gray-700">Tags</label>
+
+                {/* Input */}
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        placeholder="Type tag & enter..."
+                        className="flex-1 p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-[#0f766e] outline-none"
+                        onKeyDown={(e) => e.key === "Enter" && handleAddTag()}
+                    />
+                    <button
+                        onClick={handleAddTag}
+                        className="p-3 bg-gray-800 text-white rounded-xl hover:bg-gray-900"
+                    >
+                        <Plus className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Selected Tags */}
+                {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {tags.map((tag) => (
+                            <span
+                                key={tag}
+                                className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-[#0f766e] text-sm font-medium rounded-full"
+                            >
+                                #{tag}
+                                <button
+                                    onClick={() => setTags(tags.filter((t) => t !== tag))}
+                                    className="hover:text-red-500"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+                )}
+
+                {/* Presets */}
+                <div className="pt-2 border-t border-gray-100">
+                    <div className="text-xs text-gray-400 font-medium mb-2 flex items-center gap-1">
+                        <Tag className="w-3 h-3" /> Presets
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {TAG_PRESETS.map(preset => (
+                            <button
+                                key={preset}
+                                onClick={() => handleAddPresetTag(preset)}
+                                className={`px-2 py-1 rounded-md text-xs font-medium border transition-colors ${tags.includes(preset)
+                                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-default"
+                                    : "bg-white text-gray-600 border-gray-200 hover:border-[#0f766e] hover:text-[#0f766e]"
+                                    }`}
+                                disabled={tags.includes(preset)}
+                            >
+                                {preset}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -247,66 +397,33 @@ export function RecipeForm({ shopId, initialData, onSave, onCancel }: RecipeForm
                 />
             </div>
 
-            {/* Tags */}
-            <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Tags</label>
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        placeholder="e.g. ICE, Sweet"
-                        className="flex-1 p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-[#0f766e] outline-none"
-                        onKeyDown={(e) => e.key === "Enter" && handleAddTag()}
-                    />
+            {/* Actions (Hidden if hideActions is true) */}
+            {!hideActions && (
+                <div className="flex gap-3 pt-4">
                     <button
-                        onClick={handleAddTag}
-                        className="p-3 bg-gray-800 text-white rounded-xl hover:bg-gray-900"
+                        onClick={onCancel}
+                        className="flex-1 py-3 text-gray-600 font-bold hover:bg-gray-50 rounded-xl transition-colors"
                     >
-                        <Plus className="w-5 h-5" />
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="flex-1 py-3 bg-[#0f766e] hover:bg-[#0d6560] text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            "Save Recipe"
+                        )}
                     </button>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                    {tags.map((tag) => (
-                        <span
-                            key={tag}
-                            className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-[#0f766e] text-sm font-medium rounded-full"
-                        >
-                            #{tag}
-                            <button
-                                onClick={() => setTags(tags.filter((t) => t !== tag))}
-                                className="hover:text-red-500"
-                            >
-                                <X className="w-3 h-3" />
-                            </button>
-                        </span>
-                    ))}
-                </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 pt-4">
-                <button
-                    onClick={onCancel}
-                    className="flex-1 py-3 text-gray-600 font-bold hover:bg-gray-50 rounded-xl transition-colors"
-                >
-                    Cancel
-                </button>
-                <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="flex-1 py-3 bg-[#0f766e] hover:bg-[#0d6560] text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
-                >
-                    {isSubmitting ? (
-                        <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Saving...
-                        </>
-                    ) : (
-                        "Save Recipe"
-                    )}
-                </button>
-            </div>
+            )}
         </div>
     )
-}
+})
+
+RecipeForm.displayName = "RecipeForm"

@@ -16,8 +16,8 @@ export function AddRecipeModal({ isOpen, onClose, onSave, editingRecipe, shopId 
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-md h-[90vh] md:h-auto md:max-h-[90vh] overflow-y-auto shadow-xl flex flex-col">
                 <div className="sticky top-0 bg-white z-10 flex items-center justify-between p-4 border-b border-gray-100">
                     <h2 className="text-lg font-bold text-gray-800">
                         {editingRecipe ? "Edit Recipe" : "New Recipe"}

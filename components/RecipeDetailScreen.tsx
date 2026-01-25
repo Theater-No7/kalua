@@ -7,11 +7,13 @@ import { ArrowLeft, Clock, Flame, ChefHat, CheckCircle2, Circle, Edit2, Heart, T
 interface Recipe {
     id: string
     title: string
-    category: string
+    categoryId?: string
+    category?: string
+    displayCategoryName?: string
     tags: string[]
     image?: string | null
-    ingredients?: string[] // 追加
-    steps?: string         // 追加
+    ingredients?: string[]
+    steps?: string
     isFavorite?: boolean
 }
 
@@ -23,8 +25,9 @@ interface RecipeDetailScreenProps {
 }
 
 export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete }: RecipeDetailScreenProps) {
-    // 材料のチェック状態を管理（作ってる最中のメモ用）
     const [checkedIngredients, setCheckedIngredients] = useState<number[]>([])
+
+    const catName = recipe.displayCategoryName || recipe.category
 
     const toggleIngredient = (index: number) => {
         if (checkedIngredients.includes(index)) {
@@ -90,9 +93,18 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete }: RecipeD
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                        <span className="px-3 py-1 rounded-full bg-[#0f766e]/10 text-[#0f766e] text-xs font-bold uppercase tracking-wider">
-                            {recipe.category}
-                        </span>
+                        {/* Category */}
+                        {catName ? (
+                            <span className="px-3 py-1 rounded-full bg-[#0f766e]/10 text-[#0f766e] text-xs font-bold uppercase tracking-wider">
+                                {catName}
+                            </span>
+                        ) : (
+                            <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-400 text-xs font-bold uppercase tracking-wider">
+                                Uncategorized
+                            </span>
+                        )}
+
+                        {/* Tags */}
                         {recipe.tags && recipe.tags.map((tag) => (
                             <span key={tag} className="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
                                 #{tag}
@@ -157,7 +169,7 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete }: RecipeD
                 </div>
 
                 {/* 🌟 手順 */}
-                <div className="mb-24">
+                <div className="mb-8">
                     <h2 className="text-lg font-bold text-gray-800 mb-4">How to make</h2>
                     <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
                         {recipe.steps ? (
@@ -169,17 +181,8 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete }: RecipeD
                         )}
                     </div>
                 </div>
-            </div>
 
-            {/* 固定フッター（作成開始ボタン） */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-8 z-20">
-                <button
-                    onClick={onBack}
-                    className="w-full bg-[#0f766e] hover:bg-[#0d6560] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-200 transition-colors flex items-center justify-center gap-2"
-                >
-                    <CheckCircle2 className="w-5 h-5" />
-                    作成完了！ (Complete)
-                </button>
+                {/* Footer removed to avoid confusion. Edit action is in header. */}
             </div>
         </div>
     )

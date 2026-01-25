@@ -1,30 +1,42 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { Search, Plus } from "lucide-react"
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore"
+import React, { useState, useEffect, useMemo } from "react"
+import { Search, Plus, LayoutList, Kanban, Filter, Trash2, Eye, EyeOff, CheckSquare, X } from "lucide-react"
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, writeBatch } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 import { AddRecipeModal } from "./AddRecipeModal"
 import { RecipeDetailScreen } from "./RecipeDetailScreen"
 import { ShopSettingsModal } from "./ShopSettingsModal"
-import { CategorySettingsScreen } from "./CategorySettingsScreen"
+import { CategorySettingsView } from "./CategorySettingsView"
 
 import { DashboardLayout } from "./layouts/DashboardLayout"
 import { RecipeCardGrid } from "./dashboard/RecipeCardGrid"
 import { RecipeListView } from "./dashboard/RecipeListView"
+import { RecipeBoardView } from "./dashboard/RecipeBoardView"
 import { RecipeSidePanel } from "./dashboard/RecipeSidePanel"
 
 // Type
 export interface Recipe {
     id: string
     title: string
-    category: string
+
+    // Single Category
+    categoryId?: string
+    category?: string // Legacy/Name
+
+    // Legacy mapping (migrated on read)
+    categoryIds?: string[]
+
+    // UI Helpers
+    displayCategoryName?: string
+
     tags: string[]
     image?: string
     ingredients?: string[]
     steps?: string
     createdAt?: any
+    isVisible?: boolean // Display Flag
 }
 
 interface RecipeListScreenProps {
@@ -39,17 +51,22 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
     const [recipes, setRecipes] = useState<Recipe[]>([])
     const [categories, setCategories] = useState<{ id: string, name: string }[]>([])
     const [searchQuery, setSearchQuery] = useState("")
-    const [selectedCategory, setSelectedCategory] = useState("All")
+
+    // Filters
+    const [selectedCategoryId, setSelectedCategoryId] = useState("All")
+    const [selectedTag, setSelectedTag] = useState("All")
+
+    // Selection (Bulk Actions)
+    const [selectedRecipeIds, setSelectedRecipeIds] = useState<Set<string>>(new Set())
 
     // View State
     const [activeTab, setActiveTab] = useState<"recipes" | "categories" | "settings">("recipes")
+    const [viewMode, setViewMode] = useState<"list" | "board">("list")
 
-    // Selection State (Shared between Mobile Modal & Desktop Panel)
-    const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null) // For viewing detail on mobile, editing on desktop
-    const [isEditing, setIsEditing] = useState(false) // True if editing/creating
+    // Selection State (Editing)
+    const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
+    const [isEditing, setIsEditing] = useState(false)
     const [isMobileModalOpen, setIsMobileModalOpen] = useState(false)
-
-    // Old Settings Modal (Mobile)
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
     // ------------------------------------------------------------
@@ -82,18 +99,125 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
         return () => unsubscribe()
     }, [shopId])
 
+    // Maintain a Derived List of Recipes with resolved Category Data
+    const processedRecipes = useMemo(() => recipes.map(r => {
+        let catId = r.categoryId
+
+        // Migration Fallback
+        if (!catId && r.categoryIds && r.categoryIds.length > 0) {
+            catId = r.categoryIds[0]
+        }
+
+        // Name Fallback
+        if (!catId && r.category) {
+            const cat = categories.find(c => c.name === r.category)
+            if (cat) catId = cat.id
+        }
+
+        // Resolve Name
+        const name = categories.find(c => c.id === catId)?.name || r.category || "Uncategorized"
+
+        return {
+            ...r,
+            categoryId: catId,
+            displayCategoryName: name
+        }
+    }), [recipes, categories])
+
+    // Collect all unique tags for filter dropdown
+    const allTags = useMemo(() => {
+        const tags = new Set<string>()
+        processedRecipes.forEach(r => r.tags?.forEach(t => tags.add(t)))
+        return Array.from(tags).sort()
+    }, [processedRecipes])
+
     // ------------------------------------------------------------
     // Filter Logic
     // ------------------------------------------------------------
-    const filteredRecipes = recipes.filter((recipe) => {
+    const filteredRecipes = useMemo(() => processedRecipes.filter((recipe) => {
         const matchesSearch = recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             recipe.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-        const matchesCategory = selectedCategory === "All" || recipe.category === selectedCategory
-        return matchesSearch && matchesCategory
-    })
+
+        let matchesCategory = true
+        if (selectedCategoryId !== "All") {
+            // Strict ID Check
+            matchesCategory = recipe.categoryId === selectedCategoryId
+        }
+
+        let matchesTag = true
+        if (selectedTag !== "All") {
+            matchesTag = (recipe.tags || []).includes(selectedTag)
+        }
+
+        return matchesSearch && matchesCategory && matchesTag
+    }), [processedRecipes, searchQuery, selectedCategoryId, selectedTag])
 
     // ------------------------------------------------------------
-    // Handlers
+    // Bulk Selection Handlers
+    // ------------------------------------------------------------
+    const handleSelectOne = (id: string) => {
+        const newSet = new Set(selectedRecipeIds)
+        if (newSet.has(id)) {
+            newSet.delete(id)
+        } else {
+            newSet.add(id)
+        }
+        setSelectedRecipeIds(newSet)
+    }
+
+    const handleSelectAll = () => {
+        // Toggle Logic: If all filtered are selected, deselect them. Otherwise, select all filtered.
+        const allFilteredIds = filteredRecipes.map(r => r.id)
+        const allSelected = allFilteredIds.every(id => selectedRecipeIds.has(id))
+
+        const newSet = new Set(selectedRecipeIds)
+
+        if (allSelected) {
+            // Deselect all visible
+            allFilteredIds.forEach(id => newSet.delete(id))
+        } else {
+            // Select all visible
+            allFilteredIds.forEach(id => newSet.add(id))
+        }
+        setSelectedRecipeIds(newSet)
+    }
+
+    const handleBatchVisibility = async (targetVisible: boolean) => {
+        if (selectedRecipeIds.size === 0) return
+        try {
+            const batch = writeBatch(db)
+            selectedRecipeIds.forEach(id => {
+                const ref = doc(db, "stores", shopId, "recipes", id)
+                batch.update(ref, { isVisible: targetVisible })
+            })
+            await batch.commit()
+            setSelectedRecipeIds(new Set()) // Clear selection
+        } catch (error) {
+            console.error("Batch update failed", error)
+            alert("Failed to update recipes")
+        }
+    }
+
+    const handleBatchDelete = async () => {
+        if (selectedRecipeIds.size === 0) return
+        if (!window.confirm(`Delete ${selectedRecipeIds.size} recipes? This cannot be undone.`)) return
+
+        try {
+            const batch = writeBatch(db)
+            selectedRecipeIds.forEach(id => {
+                const ref = doc(db, "stores", shopId, "recipes", id)
+                batch.delete(ref)
+            })
+            await batch.commit()
+            setSelectedRecipeIds(new Set()) // Clear selection
+        } catch (error) {
+            console.error("Batch delete failed", error)
+            alert("Failed to delete recipes")
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Single Handlers
     // ------------------------------------------------------------
     const handleDeleteRecipe = async (recipeId: string) => {
         if (!window.confirm("Are you sure you want to delete this recipe?")) return
@@ -108,38 +232,41 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
         }
     }
 
-    // Creating New
+    const handleToggleVisibility = async (recipe: Recipe) => {
+        const newStatus = !(recipe.isVisible !== false)
+        try {
+            const recipeRef = doc(db, "stores", shopId, "recipes", recipe.id)
+            await updateDoc(recipeRef, {
+                isVisible: newStatus
+            })
+        } catch (error) {
+            console.error("Error toggling visibility: ", error);
+            alert("Failed to update status")
+        }
+    }
+
     const handleCreateNew = () => {
         setIsEditing(true)
         setSelectedRecipe(null)
-        // Check viewport to decide Mobile Modal vs Desktop Panel?
-        // Actually CSS hidden classes handle rendering, but state is shared.
-        // We can just set state. Mobile renders Modal if isEditing is true (maybe complex).
-        // Let's keep existing mobile flow: Detail -> Edit.
-        // But for "New", Mobile uses Modal immediately.
         setIsMobileModalOpen(true)
     }
 
-    // Selecting (Desktop)
     const handleDesktopSelect = (recipe: Recipe) => {
+        // If actively selecting checkboxes, maybe row click should select checkbox? 
+        // Logic: Clicking anywhere in row selects recipe for PREVIEW/EDIT (Standard behavior). 
+        // Checkbox handles Selection.
         setSelectedRecipe(recipe)
         setIsEditing(true)
     }
 
-    // Selecting (Mobile)
     const handleMobileSelect = (recipe: Recipe) => {
         setSelectedRecipe(recipe)
-        // Mobile navigates to Detail Screen, not Edit Panel immediately
     }
 
-    // Save Complete
     const handleSaveComplete = () => {
         setIsEditing(false)
         setIsMobileModalOpen(false)
         if (selectedRecipe && !isEditing) {
-            // If we were just viewing, clear selection? Or keep it?
-            // On desktop, keep selection implies "still editing".
-            // Let's clear for now to close panel.
             setSelectedRecipe(null)
         }
     }
@@ -148,18 +275,11 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
     // Render
     // ------------------------------------------------------------
 
-    // Mobile Detail Screen Interception
-    // Note: On Desktop, selectedRecipe is used for the SidePanel, but on Mobile it triggers the full screen detail.
-    // We need to differentiate or hide DetailScreen on Desktop.
-
     return (
         <DashboardLayout
             activeTab={activeTab}
             onTabChange={setActiveTab}
         >
-            {/* ------------------------------------------------------ */}
-            {/* MOBILE ONLY: Detail Screen Overlay */}
-            {/* ------------------------------------------------------ */}
             <div className="md:hidden">
                 {selectedRecipe && !isEditing && (
                     <RecipeDetailScreen
@@ -167,20 +287,16 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                         onBack={() => setSelectedRecipe(null)}
                         onEdit={() => {
                             setIsEditing(true)
-                            setIsMobileModalOpen(true) // Open Edit Modal
+                            setIsMobileModalOpen(true)
                         }}
                         onDelete={() => handleDeleteRecipe(selectedRecipe.id)}
                     />
                 )}
             </div>
 
-            {/* ------------------------------------------------------ */}
-            {/* MAIN CONTENT AREA */}
-            {/* ------------------------------------------------------ */}
             <div className={`flex flex-col h-full ${selectedRecipe && !isEditing ? "hidden md:flex" : "flex"}`}>
-                {/* ^ On mobile, if detail is open, hide main list. On desktop, always show list. */}
 
-                {/* Header (Adapts to Tab) */}
+                {/* Header */}
                 <div className="px-6 py-6 md:px-8 md:py-8 bg-white border-b border-gray-100 flex justify-between items-center sticky top-0 z-10">
                     <div className="flex-1">
                         <h1 className="text-2xl font-bold text-gray-800">
@@ -191,14 +307,12 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                         <p className="text-gray-400 text-sm hidden md:block">Manage your cafe menu and settings</p>
                     </div>
 
-                    {/* Mobile Settings Button */}
                     <div className="md:hidden">
                         <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-gray-50 rounded-full">
                             <SettingsIcon />
                         </button>
                     </div>
 
-                    {/* Desktop: Add Button (Only on Recipes Tab) */}
                     {activeTab === "recipes" && (
                         <button
                             onClick={handleCreateNew}
@@ -213,16 +327,13 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                 {/* Content Body */}
                 <div className="flex-1 overflow-hidden relative flex">
 
-                    {/* --------------------- */}
-                    {/* TAB: RECIPES */}
-                    {/* --------------------- */}
                     {activeTab === "recipes" && (
                         <>
-                            {/* Main List Area */}
-                            <div className="flex-1 flex flex-col min-w-0 h-full">
-                                {/* Search & Filters Bar */}
-                                <div className="px-6 py-4 md:px-8 flex flex-col md:flex-row gap-4 shrink-0">
-                                    <div className="relative flex-1">
+                            <div className="flex-1 flex flex-col min-w-0 h-full relative">
+                                {/* Bar: Search, Filters, View Toggle */}
+                                <div className="px-6 py-4 md:px-8 flex flex-col xl:flex-row gap-4 shrink-0 items-start xl:items-center">
+                                    {/* Search */}
+                                    <div className="relative flex-1 w-full xl:w-auto">
                                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                                         <input
                                             type="text"
@@ -232,55 +343,158 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                                             className="w-full bg-gray-50 rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-[#0f766e]/20 transition-all border border-transparent focus:border-[#0f766e]/30"
                                         />
                                     </div>
-                                    <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-                                        <FilterButton
-                                            active={selectedCategory === "All"}
-                                            onClick={() => setSelectedCategory("All")}
-                                            label="All"
-                                        />
-                                        {categories.map((cat) => (
+
+                                    {/* Right Side Controls */}
+                                    <div className="flex items-center gap-4 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 scrollbar-hide">
+
+                                        {/* View Toggle - Hidden on Mobile */}
+                                        <div className="hidden md:flex bg-gray-100 p-1 rounded-lg shrink-0">
+                                            <button
+                                                onClick={() => setViewMode("list")}
+                                                className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
+                                                title="List View"
+                                            >
+                                                <LayoutList className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => setViewMode("board")}
+                                                className={`p-1.5 rounded-md transition-all ${viewMode === "board" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
+                                                title="Board View"
+                                            >
+                                                <Kanban className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        {/* Tag Filter Dropdown */}
+                                        <div className="relative shrink-0">
+                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                                <Filter className="w-3.5 h-3.5" />
+                                            </div>
+                                            <select
+                                                value={selectedTag}
+                                                onChange={(e) => setSelectedTag(e.target.value)}
+                                                className="pl-9 pr-8 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 appearance-none focus:ring-2 focus:ring-[#0f766e]/20 outline-none cursor-pointer"
+                                            >
+                                                <option value="All">All Tags</option>
+                                                {allTags.map(tag => (
+                                                    <option key={tag} value={tag}>#{tag}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Filters */}
+                                        <div className="flex gap-2">
                                             <FilterButton
-                                                key={cat.id}
-                                                active={selectedCategory === cat.name}
-                                                onClick={() => setSelectedCategory(cat.name)}
-                                                label={cat.name}
+                                                active={selectedCategoryId === "All"}
+                                                onClick={() => setSelectedCategoryId("All")}
+                                                label="All"
                                             />
-                                        ))}
+                                            {categories.map((cat) => (
+                                                <FilterButton
+                                                    key={cat.id}
+                                                    active={selectedCategoryId === cat.id}
+                                                    onClick={() => setSelectedCategoryId(cat.id)}
+                                                    label={cat.name}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* List Views */}
-                                <div className="flex-1 overflow-y-auto px-6 pb-24 md:px-0 md:pb-0">
-                                    {/* Mobile Grid */}
-                                    <div className="md:hidden">
+                                <div className="flex-1 overflow-y-auto px-6 pb-24 md:px-0 md:pb-0 bg-white">
+                                    {/* viewMode Switch - Force List on Mobile */}
+                                    <div className="md:hidden pt-4">
                                         <RecipeCardGrid
                                             recipes={filteredRecipes}
                                             onSelect={handleMobileSelect}
+                                            onToggleVisibility={handleToggleVisibility}
                                         />
                                     </div>
 
-                                    {/* Desktop Table (Full Width) */}
                                     <div className="hidden md:block h-full">
-                                        <RecipeListView
-                                            recipes={filteredRecipes}
-                                            onSelect={handleDesktopSelect}
-                                            selectedId={isEditing && selectedRecipe ? selectedRecipe.id : undefined}
-                                        />
+                                        {viewMode === "list" ? (
+                                            <div className="h-full pb-20">
+                                                <RecipeListView
+                                                    recipes={filteredRecipes}
+                                                    onSelect={handleDesktopSelect}
+                                                    selectedId={isEditing && selectedRecipe ? selectedRecipe.id : undefined}
+                                                    onToggleVisibility={handleToggleVisibility}
+
+                                                    // Selection Props
+                                                    selectedRecipeIds={selectedRecipeIds}
+                                                    onSelectOne={handleSelectOne}
+                                                    onSelectAll={handleSelectAll}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="h-full">
+                                                <RecipeBoardView
+                                                    shopId={shopId}
+                                                    recipes={filteredRecipes}
+                                                    categories={categories}
+                                                    onSelect={handleDesktopSelect}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
+
+                                {/* Bulk Action Bar (Overlay) */}
+                                {selectedRecipeIds.size > 0 && (
+                                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 shadow-2xl animate-in slide-in-from-bottom-5 fade-in duration-300">
+                                        <div className="bg-gray-900 text-white rounded-full px-6 py-3 flex items-center gap-6 shadow-xl border border-gray-700/50">
+                                            <div className="flex items-center gap-3 pr-4 border-r border-gray-700">
+                                                <div className="bg-[#0f766e] text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                                    {selectedRecipeIds.size}
+                                                </div>
+                                                <span className="text-sm font-medium">Selected</span>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleBatchVisibility(true)}
+                                                    className="p-2 hover:bg-gray-800 rounded-full transition-colors text-gray-300 hover:text-white tooltip-trigger"
+                                                    title="Show All"
+                                                >
+                                                    <Eye className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleBatchVisibility(false)}
+                                                    className="p-2 hover:bg-gray-800 rounded-full transition-colors text-gray-300 hover:text-white"
+                                                    title="Hide All"
+                                                >
+                                                    <EyeOff className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={handleBatchDelete}
+                                                    className="p-2 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-colors text-gray-300 ml-2"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
+
+                                            <button
+                                                onClick={() => setSelectedRecipeIds(new Set())}
+                                                className="ml-2 hover:bg-gray-800 p-1 rounded-full text-gray-500"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Desktop Side Panel (Slide Over) */}
                             <RecipeSidePanel
-                                isOpen={isEditing} // Open when editing (create or update)
+                                isOpen={isEditing}
                                 onClose={() => {
                                     setIsEditing(false)
                                     setSelectedRecipe(null)
                                 }}
                                 shopId={shopId}
-                                editingRecipe={selectedRecipe} // Pass selected recipe for editing
+                                editingRecipe={selectedRecipe}
                                 onSave={() => {
-                                    // Refresh or just close
                                     setIsEditing(false)
                                     setSelectedRecipe(null)
                                 }}
@@ -288,15 +502,11 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                         </>
                     )}
 
-                    {/* --------------------- */}
-                    {/* TAB: CATEGORIES */}
-                    {/* --------------------- */}
                     {activeTab === "categories" && (
                         <div className="flex-1 h-full overflow-hidden">
-                            {/* Reuse existing component but wrap it to fit dashboard */}
                             <div className="h-full md:p-8">
                                 <div className="h-full md:bg-white md:rounded-2xl md:border md:border-gray-100 md:shadow-sm overflow-hidden">
-                                    <CategorySettingsScreen
+                                    <CategorySettingsView
                                         shopId={shopId}
                                     />
                                 </div>
@@ -304,27 +514,9 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                         </div>
                     )}
 
-                    {/* --------------------- */}
-                    {/* TAB: SETTINGS */}
-                    {/* --------------------- */}
                     {activeTab === "settings" && (
                         <div className="flex-1 p-6 md:p-8">
                             <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                {/* Just render the content of ShopSettingsModal inline? 
-                                     The Modal component has its own header/close logic. 
-                                     Ideally we extract content, but for now let's use the Modal ONLY for mobile via floating button,
-                                     and maybe a PLACEHOLDER here for desktop saying "Use mobile for settings" or refactor fully.
-                                     
-                                     Wait, the user requirement says "Categories integrated". Settings can stay modal on mobile.
-                                     On desktop, let's show a simple settings page or just re-open the modal logic inline?
-                                     
-                                     Actually, let's just trigger the Modal logic for now even on Desktop if they click settings tab?
-                                     No, that's weird UI.
-                                     
-                                     Let's render a simple placeholder for Settings Tab or reuse the Modal content if possible.
-                                     Since I didn't refactor ShopSettingsModal to separate content, I will just show a "Coming Soon" or 
-                                     manual implementation of logout button here for Desktop.
-                                 */}
                                 <div className="p-8 text-center">
                                     <h3 className="font-bold text-gray-800 mb-2">Shop ID</h3>
                                     <code className="bg-gray-100 px-4 py-2 rounded-lg block mb-6">{shopId}</code>
@@ -344,7 +536,6 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
 
                 </div>
 
-                {/* Mobile Floating Action Button (Create) */}
                 {activeTab === "recipes" && (
                     <button
                         onClick={handleCreateNew}
@@ -355,12 +546,6 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                 )}
             </div>
 
-            {/* ------------------------------------------------------ */}
-            {/* MODALS (Mobile / Overlays) */}
-            {/* ------------------------------------------------------ */}
-
-            {/* Create/Edit Modal (Mobile Only mostly, but logic shared) */}
-            {/* Create/Edit Modal (Mobile Only mostly, but logic shared) */}
             <div className="md:hidden">
                 <AddRecipeModal
                     isOpen={isMobileModalOpen}
@@ -374,7 +559,6 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                 />
             </div>
 
-            {/* Shop Settings Modal (Mobile Triggered) */}
             <ShopSettingsModal
                 isOpen={isSettingsOpen}
                 onClose={() => setIsSettingsOpen(false)}
@@ -386,7 +570,6 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
     )
 }
 
-// Helper Components
 function FilterButton({ active, onClick, label }: { active: boolean, onClick: () => void, label: string }) {
     return (
         <button

@@ -30,13 +30,22 @@ export type Recipe = {
     id: string;
     storeId: string;
     title: string;
-    category: string;
+
+    // Category (Single strict link)
+    categoryId?: string;
+    category?: string; // Legacy (Name) - fallback for display if id missing
+
+    // Legacy support for multi-category (to be migrated)
+    categoryIds?: string[];
+
     imageUrl?: string; // 画像は必須ではない
     ingredients: string[]; // 材料リスト
     steps: string[]; // 手順リスト
     description?: string; // コツ・メモ
+    tags: string[]; // 複数タグ（#秋限定, #New など）
     updatedAt: Date;
     createdAt: Date;
+    isVisible?: boolean; // 表示・非表示フラグ
 };
 
 // 既読ログ
