@@ -3,17 +3,17 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// Your web app's Firebase configuration
+// 環境変数から読み込むように変更
 const firebaseConfig = {
-    apiKey: "AIzaSyBX2sPF31iDkxIxaP6FlBXH3Vt4Wgahdis",
-    authDomain: "kalua-app-cb8e9.firebaseapp.com",
-    projectId: "kalua-app-cb8e9",
-    storageBucket: "kalua-app-cb8e9.firebasestorage.app",
-    messagingSenderId: "638528212104",
-    appId: "1:638528212104:web:ec75b85a5558b2da1d233d"
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// アプリの初期化（二重初期化を防ぐおまじない）
+// アプリの初期化（二重初期化を防ぐ）
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // 他のファイルで使えるようにエクスポート
