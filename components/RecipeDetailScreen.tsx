@@ -3,6 +3,7 @@
 import React, { useState } from "react"
 import { ArrowLeft, Clock, Flame, ChefHat, CheckCircle2, Circle, Edit2, Heart, Trash2 } from "lucide-react"
 import { useUser } from "@/hooks/useUser"
+import { ReadReceiptButton } from "./dashboard/ReadReceiptButton"
 
 // 受け取るデータの形を定義
 interface Recipe {
@@ -17,6 +18,7 @@ interface Recipe {
     steps?: string
     isFavorite?: boolean
     isVisible?: boolean
+    readBy?: string[]
 }
 
 interface RecipeDetailScreenProps {
@@ -25,9 +27,10 @@ interface RecipeDetailScreenProps {
     onEdit: () => void
     onDelete: () => void
     isReadOnly?: boolean
+    shopId: string
 }
 
-export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnly = false }: RecipeDetailScreenProps) {
+export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnly = false, shopId }: RecipeDetailScreenProps) {
     const [checkedIngredients, setCheckedIngredients] = useState<number[]>([])
     const { isBookmarked, toggleBookmark } = useUser()
     const isFav = isBookmarked(recipe.id)
@@ -96,7 +99,7 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnl
             </div>
 
             {/* 詳細コンテンツ */}
-            <div className="flex-1 -mt-6 relative z-10 bg-white rounded-t-3xl px-6 py-8 shadow-lg">
+            <div className="flex-1 -mt-6 relative z-10 bg-white rounded-t-3xl px-6 py-8 shadow-lg pb-40">
                 {/* タイトルとタグ */}
                 <div className="mb-8">
                     <div className="flex items-start justify-between mb-3 gap-4">
@@ -198,6 +201,14 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnl
                         )}
                     </div>
                 </div>
+            </div>
+            {/* Read Receipt (Sticky Footer for Staff) */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 z-50">
+                <ReadReceiptButton
+                    recipeId={recipe.id}
+                    readBy={recipe.readBy || []} // recipe type in interface might need readBy
+                    shopId={shopId}
+                />
             </div>
         </div>
     )

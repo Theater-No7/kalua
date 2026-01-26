@@ -338,6 +338,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                         }}
                         onDelete={() => handleDeleteRecipe(selectedRecipe.id)}
                         isReadOnly={role === 'STAFF'}
+                        shopId={shopId}
                     />
                 )}
             </div>
@@ -356,7 +357,16 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                         <p className="text-gray-400 text-sm hidden md:block">Manage your cafe menu and settings</p>
                     </div>
 
-                    <div className="md:hidden">
+                    <div className="md:hidden flex items-center gap-2">
+                        <button
+                            onClick={() => setActiveTab("notifications")}
+                            className="p-2 bg-gray-50 rounded-full relative"
+                        >
+                            <Bell className="w-5 h-5 text-gray-600" />
+                            {unreadCount > 0 && (
+                                <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white transform translate-x-1/4 -translate-y-1/4"></span>
+                            )}
+                        </button>
                         <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-gray-50 rounded-full">
                             <SettingsIcon />
                         </button>
@@ -598,6 +608,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                         <div className="flex-1 w-full h-full overflow-y-auto bg-gray-50">
                             <NotificationsView
                                 shopId={shopId}
+                                onBack={() => setActiveTab("recipes")}
                                 onSelectRecipe={(recipeId) => {
                                     const recipe = recipes.find(r => r.id === recipeId)
                                     if (recipe) {
@@ -612,6 +623,8 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                                         }
                                     } else {
                                         alert("Recipe not found or deleted")
+                                        // Optional: Delete notification automatically here? 
+                                        // For now just alert as requested.
                                     }
                                 }}
                             />

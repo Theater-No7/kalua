@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { collection, query, where, onSnapshot, orderBy, getDocs, writeBatch, arrayUnion } from "firebase/firestore"
+import { collection, query, where, onSnapshot, orderBy, getDocs, writeBatch, arrayUnion, limit } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -23,7 +23,8 @@ export function useNotifications(shopId: string) {
 
         const q = query(
             collection(db, "stores", shopId, "notifications"),
-            orderBy("createdAt", "desc")
+            orderBy("createdAt", "desc"),
+            limit(50)
         )
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -57,6 +58,7 @@ export function useNotifications(shopId: string) {
                 where("recipeId", "==", recipeId)
             )
             const snapshot = await getDocs(q)
+            console.log(`Found ${snapshot.size} notifications for recipe ${recipeId}`)
 
             const batch = writeBatch(db)
             let hasUpdates = false

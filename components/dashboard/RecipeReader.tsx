@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react"
 import { Coffee, Eye, EyeOff, Loader2 } from "lucide-react"
 import { doc, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { ReadReceiptButton } from "./ReadReceiptButton"
 
 interface HelperRecipe {
     id: string
@@ -100,7 +101,7 @@ export function RecipeReader({ recipe, shopId, onClose, onUpdate }: RecipeReader
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-200 space-y-6">
+            <div className="flex-1 overflow-y-auto p-6 pb-32 md:pb-6 scrollbar-thin scrollbar-thumb-gray-200 space-y-6">
                 {/* Image & Title */}
                 <div className="space-y-4">
                     <div className="w-full aspect-video rounded-xl bg-gray-100 overflow-hidden relative border border-gray-100">
@@ -174,8 +175,8 @@ export function RecipeReader({ recipe, shopId, onClose, onUpdate }: RecipeReader
                     </div>
                 </div>
 
-                {/* Mark as Understood Section */}
-                <div className="mt-8 mb-4">
+                {/* Mark as Understood Section - Sticky on Mobile */}
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 z-50 md:static md:bg-transparent md:border-none md:p-0 md:mt-8 md:mb-4">
                     <ReadReceiptButton
                         recipeId={recipe.id}
                         readBy={recipe.readBy || []}
@@ -188,80 +189,4 @@ export function RecipeReader({ recipe, shopId, onClose, onUpdate }: RecipeReader
     )
 }
 
-import { useAuth } from "@/contexts/AuthContext"
-import { useRecipes } from "@/hooks/useRecipes"
-import { Check, ThumbsUp } from "lucide-react"
 
-import { useNotifications } from "@/hooks/useNotifications"
-
-function ReadReceiptButton({ recipeId, readBy, shopId, onUpdate }: { recipeId: string, readBy: string[], shopId: string, onUpdate?: () => void }) {
-    const { user } = useAuth()
-    const { markRecipeAsRead } = useRecipes(shopId)
-    const { markNotificationsAsReadByRecipeId } = useNotifications(shopId)
-    const [isRead, setIsRead] = useState(user ? readBy.includes(user.uid) : false)
-    const [loading, setLoading] = useState(false)
-
-    // Sync if props change
-    useEffect(() => {
-        if (user) {
-            setIsRead(readBy.includes(user.uid))
-        }
-    }, [readBy, user])
-
-    const handleMarkAsRead = async () => {
-        if (!user || isRead || loading) return
-
-        setLoading(true)
-
-        // Parallel execution: Mark Recipe Read AND Mark Notifications Read
-        const [recipeSuccess] = await Promise.all([
-            markRecipeAsRead(recipeId, user.uid),
-            markNotificationsAsReadByRecipeId(recipeId, user.uid)
-        ])
-
-        if (recipeSuccess) {
-            setIsRead(true)
-            if (onUpdate) onUpdate()
-        }
-        setLoading(false)
-    }
-
-    if (!user) return null
-
-    return (
-        <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-2xl border border-gray-100">
-            {!isRead ? (
-                <>
-                    <p className="text-sm text-gray-600 mb-3 font-medium">手順を理解しましたか？</p>
-                    <button
-                        onClick={handleMarkAsRead}
-                        disabled={loading}
-                        className="group relative overflow-hidden bg-[#0f766e] hover:bg-[#0d6560] text-white px-8 py-3 rounded-full font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed w-full max-w-xs flex items-center justify-center gap-2"
-                    >
-                        {loading ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            <>
-                                <ThumbsUp className="w-5 h-5 group-hover:-rotate-12 transition-transform" />
-                                理解しました！ (Mark as Understood)
-                            </>
-                        )}
-                    </button>
-                    <p className="text-xs text-center text-gray-400 mt-2">
-                        クリックするとオーナーに既読通知が送られます
-                    </p>
-                </>
-            ) : (
-                <div className="flex flex-col items-center animate-in zoom-in duration-300">
-                    <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-2 shadow-sm">
-                        <Check className="w-6 h-6" />
-                    </div>
-                    <span className="text-green-700 font-bold">学習済み (Understood ✓)</span>
-                    <p className="text-xs text-gray-400 mt-1">
-                        {new Date().toLocaleDateString()} に確認済み
-                    </p>
-                </div>
-            )}
-        </div>
-    )
-}

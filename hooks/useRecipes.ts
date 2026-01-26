@@ -59,10 +59,14 @@ export function useRecipes(shopId: string) {
         const recipeRef = doc(db, "stores", shopId, "recipes", recipeId)
 
         // 1. Update Data & Reset Read Status
-        const updateData = {
+        const updateData: any = {
             ...data,
-            readBy: [], // RESET READ STATUS
             updatedAt: serverTimestamp()
+        }
+
+        // Only reset read status if we are notifying staff (Major update)
+        if (notifyStaff) {
+            updateData.readBy = []
         }
 
         batch.update(recipeRef, updateData)

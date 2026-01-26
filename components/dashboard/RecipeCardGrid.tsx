@@ -2,6 +2,7 @@
 
 import React from "react"
 import { Coffee, Eye, EyeOff } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface RecipeCardGridProps {
     recipes: any[]
@@ -10,6 +11,7 @@ interface RecipeCardGridProps {
 }
 
 export function RecipeCardGrid({ recipes, onSelect, onToggleVisibility }: RecipeCardGridProps) {
+    const { user } = useAuth()
     if (recipes.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center p-12 text-gray-400">
@@ -42,6 +44,7 @@ export function RecipeCardGrid({ recipes, onSelect, onToggleVisibility }: Recipe
                             </div>
                         )}
 
+
                         {/* Visibility Toggle Button (Always visible for easy access) */}
                         {onToggleVisibility && (
                             <button
@@ -70,9 +73,15 @@ export function RecipeCardGrid({ recipes, onSelect, onToggleVisibility }: Recipe
                             )}
                         </div>
                         <div className="p-3">
-                            <h3 className="font-semibold text-[#333333] text-sm leading-snug mb-2 line-clamp-2">
-                                {recipe.title}
-                            </h3>
+                            {/* Title with Unread Badge */}
+                            <div className="flex items-start mb-2">
+                                <h3 className="font-semibold text-[#333333] text-sm leading-snug line-clamp-2">
+                                    {recipe.title}
+                                </h3>
+                                {user && !recipe.readBy?.includes(user.uid) && (
+                                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full ml-2 flex-shrink-0 mt-1" />
+                                )}
+                            </div>
 
                             {/* Tags and Category */}
                             <div className="flex flex-wrap gap-1.5 align-middle">
