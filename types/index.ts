@@ -4,6 +4,7 @@ export type User = {
     name: string;
     avatarUrl?: string; // LINEのアイコン画像
     currentStoreId?: string; // 最後に開いていた店舗ID
+    bookmarks?: string[]; // お気に入りレシピID
     createdAt: Date;
 };
 

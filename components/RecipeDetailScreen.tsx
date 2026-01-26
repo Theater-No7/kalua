@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import { ArrowLeft, Clock, Flame, ChefHat, CheckCircle2, Circle, Edit2, Heart, Trash2 } from "lucide-react"
+import { useUser } from "@/hooks/useUser"
 
 // 受け取るデータの形を定義
 interface Recipe {
@@ -28,24 +29,10 @@ interface RecipeDetailScreenProps {
 
 export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnly = false }: RecipeDetailScreenProps) {
     const [checkedIngredients, setCheckedIngredients] = useState<number[]>([])
+    const { isBookmarked, toggleBookmark } = useUser()
+    const isFav = isBookmarked(recipe.id)
 
     const catName = recipe.displayCategoryName || recipe.category
-
-    // For Staff: Toggle Visibility Logic
-    const [isUpdating, setIsUpdating] = useState(false)
-    const [localIsVisible, setLocalIsVisible] = useState(recipe.isVisible !== false) // Default true if undefined
-
-    // We need shopId to update Firestore. 
-    // However, RecipeDetailScreen currently doesn't receive shopId.
-    // We should probably pass shopId or a update callback.
-    // Given the previous pattern, maybe onUpdate?
-    // User request: "Staff can toggle Sold Out". 
-    // Let's assume we need to add standard visibility toggle logic here or passing a handler is better.
-    // Existing code passes onEdit/onDelete.
-    // Let's add onToggleVisibility?
-    // Actually the request says "In reader view, allow Sold Out toggle".
-    // I need to implement the toggle.
-    // I can modify props to take `onToggleVisibility`.
 
     const toggleIngredient = (index: number) => {
         if (checkedIngredients.includes(index)) {
@@ -101,10 +88,6 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnl
                         </>
                     ) : (
                         /* Staff Read-Only Actions (Sold Out Toggle) */
-                        /* Note: We need a handler for this. For now let's just show a badge or toggle if we had the handler. */
-                        /* The prompt asks to allow toggling. */
-                        /* We didn't pass onToggleVisibility yet. */
-                        /* Let's rely on the parent updating or just show "Reader Mode" for now and I will add the toggle handler next step. */
                         <div className="bg-black/40 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/20 font-bold">
                             Staff View
                         </div>
@@ -118,8 +101,11 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnl
                 <div className="mb-8">
                     <div className="flex items-start justify-between mb-3 gap-4">
                         <h1 className="text-2xl font-bold text-gray-800 leading-tight">{recipe.title}</h1>
-                        <button className="text-gray-400 hover:text-red-500 transition-colors">
-                            <Heart className={`w-6 h-6 ${recipe.isFavorite ? "fill-red-500 text-red-500" : ""}`} />
+                        <button
+                            onClick={() => toggleBookmark(recipe.id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors bg-gray-50 p-2 rounded-full hover:bg-red-50"
+                        >
+                            <Heart className={`w-6 h-6 ${isFav ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
                         </button>
                     </div>
 
@@ -212,8 +198,6 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnl
                         )}
                     </div>
                 </div>
-
-                {/* Footer removed to avoid confusion. Edit action is in header. */}
             </div>
         </div>
     )

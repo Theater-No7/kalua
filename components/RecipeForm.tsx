@@ -1,10 +1,11 @@
 "use client"
 
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react"
-import { Upload, Plus, Loader2, Trash2, X, Eye, EyeOff, Check, Tag } from "lucide-react"
-import { collection, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, onSnapshot } from "firebase/firestore"
+import { Upload, Plus, Loader2, Trash2, X, Eye, EyeOff, Check, Tag, Bell } from "lucide-react"
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore"
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage"
 import { db, storage } from "@/lib/firebase"
+import { useRecipes } from "@/hooks/useRecipes"
 
 export interface RecipeFormHandle {
     submit: () => Promise<void>
@@ -80,6 +81,7 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
             setSteps(initialData.steps || "")
             setImagePreview(initialData.image || "")
             setIsVisible(initialData.isVisible !== false)
+            setNotifyStaff(false) // Default to silent for edits
         } else {
             // Reset
             setTitle("")
@@ -90,6 +92,7 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
             setImageFile(null)
             setImagePreview("")
             setIsVisible(true)
+            setNotifyStaff(true) // Default to notify for new
         }
     }, [initialData])
 
@@ -142,6 +145,12 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
         }
     }
 
+    // State
+    const [notifyStaff, setNotifyStaff] = useState(true)
+    const { addRecipe, updateRecipe } = useRecipes(shopId)
+
+    // ... (Hooks)
+
     const handleSubmit = async () => {
         if (!title) {
             alert("Please enter a recipe title")
@@ -165,44 +174,31 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
             }
 
             const cleanIngredients = ingredients.filter(i => i.trim() !== "")
-
-            // Get Category Name for backward compatibility
             const catName = categories.find(c => c.id === selectedCategoryId)?.name || "Uncategorized";
 
             const recipeData = {
                 title,
-
-                // New Single Category Model - strict mapping
                 categoryId: selectedCategoryId,
-                category: catName, // Keep name for legacy displays if needed
-
-                // ABOLISHED: categoryIds. We do not write it anymore.
-
+                category: catName,
                 tags,
                 image: downloadURL,
                 ingredients: cleanIngredients,
                 steps,
                 isVisible,
-                updatedAt: serverTimestamp(),
+                // updatedAt is handled in hook
             }
 
             if (initialData) {
-                // Update
-                const docRef = doc(db, "stores", shopId, "recipes", initialData.id)
-                await updateDoc(docRef, recipeData)
+                await updateRecipe(initialData.id, recipeData, notifyStaff)
             } else {
-                // Create
-                await addDoc(collection(db, "stores", shopId, "recipes"), {
-                    ...recipeData,
-                    createdAt: serverTimestamp(),
-                })
+                await addRecipe(recipeData, notifyStaff)
             }
 
             onSave()
         } catch (error) {
             console.error("Error saving document: ", error)
             alert("Failed to save")
-            throw error // Re-throw to let parent know
+            throw error
         } finally {
             setIsSubmitting(false)
         }
@@ -232,20 +228,39 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
             </div>
 
             {/* Visibility Switch */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${isVisible ? "bg-emerald-100 text-[#0f766e]" : "bg-gray-200 text-gray-500"}`}>
-                        {isVisible ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${isVisible ? "bg-emerald-100 text-[#0f766e]" : "bg-gray-200 text-gray-500"}`}>
+                            {isVisible ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-800 text-sm">Visibility</h3>
+                            <p className="text-xs text-gray-400">{isVisible ? "Visible to everyone" : "Hidden from menu"}</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-gray-800 text-sm">Recipe Visibility</h3>
-                        <p className="text-xs text-gray-400">{isVisible ? "Visible to everyone" : "Hidden from menu"}</p>
-                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={isVisible} onChange={(e) => setIsVisible(e.target.checked)} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0f766e]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0f766e]"></div>
+                    </label>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked={isVisible} onChange={(e) => setIsVisible(e.target.checked)} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0f766e]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0f766e]"></div>
-                </label>
+
+                {/* Notification Toggle (New) */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${notifyStaff ? "bg-amber-100 text-amber-600" : "bg-gray-200 text-gray-500"}`}>
+                            <Bell className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-gray-800 text-sm">Notify Staff</h3>
+                            <p className="text-xs text-gray-400">{notifyStaff ? "Will send alert" : "Silent update"}</p>
+                        </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={notifyStaff} onChange={(e) => setNotifyStaff(e.target.checked)} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                </div>
             </div>
 
             {/* Title */}

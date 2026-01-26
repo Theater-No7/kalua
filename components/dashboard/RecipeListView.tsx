@@ -2,9 +2,11 @@
 
 import React from "react"
 import { Coffee, Clock, Eye, EyeOff, CheckSquare, Square, CheckCircle2 } from "lucide-react"
+import { useUser } from "@/hooks/useUser"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface RecipeListViewProps {
-    recipes: any[] // Using any to accept the extended helper recipe object
+    recipes: any[]
     onSelect: (recipe: any) => void
     onToggleVisibility: (recipe: any) => void
     selectedId?: string
@@ -28,6 +30,9 @@ export function RecipeListView({
     isReadOnly = false,
     totalStaffCount = 0
 }: RecipeListViewProps) {
+    const { user } = useAuth()
+    const { isBookmarked } = useUser()
+
     if (recipes.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 p-12">
@@ -78,6 +83,10 @@ export function RecipeListView({
                         const catName = recipe.displayCategoryName || recipe.category
                         const isSelected = selectedRecipeIds.has(recipe.id)
 
+                        // Unread Logic
+                        const isUnread = isReadOnly && user && !recipe.readBy?.includes(user.uid)
+                        const isFav = isBookmarked(recipe.id)
+
                         return (
                             <tr
                                 key={recipe.id}
@@ -105,7 +114,7 @@ export function RecipeListView({
                                 )}
 
                                 <td className="py-3 px-4 align-middle">
-                                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 relative">
                                         {recipe.image ? (
                                             <img src={recipe.image} alt="" className="w-full h-full object-cover" />
                                         ) : (
@@ -116,9 +125,17 @@ export function RecipeListView({
                                     </div>
                                 </td>
                                 <td className="py-3 px-4 align-middle">
-                                    <p className={`font-semibold text-sm ${selectedId === recipe.id ? "text-[#0f766e]" : "text-gray-800"}`}>
-                                        {recipe.title}
-                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        {/* Unread Badge (Inline) */}
+                                        {isUnread && (
+                                            <div className="w-2 h-2 bg-red-500 rounded-full shrink-0" title="Unread" />
+                                        )}
+                                        <p className={`font-semibold text-sm ${selectedId === recipe.id ? "text-[#0f766e]" : "text-gray-800"}`}>
+                                            {recipe.title}
+                                        </p>
+                                        {/* Bookmark Icon in table */}
+                                        {isFav && <span className="text-red-400">♥</span>}
+                                    </div>
                                 </td>
                                 <td className="py-3 px-4 align-middle">
                                     {catName ? (

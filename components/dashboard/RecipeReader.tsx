@@ -192,9 +192,12 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useRecipes } from "@/hooks/useRecipes"
 import { Check, ThumbsUp } from "lucide-react"
 
+import { useNotifications } from "@/hooks/useNotifications"
+
 function ReadReceiptButton({ recipeId, readBy, shopId, onUpdate }: { recipeId: string, readBy: string[], shopId: string, onUpdate?: () => void }) {
     const { user } = useAuth()
     const { markRecipeAsRead } = useRecipes(shopId)
+    const { markNotificationsAsReadByRecipeId } = useNotifications(shopId)
     const [isRead, setIsRead] = useState(user ? readBy.includes(user.uid) : false)
     const [loading, setLoading] = useState(false)
 
@@ -209,12 +212,16 @@ function ReadReceiptButton({ recipeId, readBy, shopId, onUpdate }: { recipeId: s
         if (!user || isRead || loading) return
 
         setLoading(true)
-        const success = await markRecipeAsRead(recipeId, user.uid)
-        if (success) {
+
+        // Parallel execution: Mark Recipe Read AND Mark Notifications Read
+        const [recipeSuccess] = await Promise.all([
+            markRecipeAsRead(recipeId, user.uid),
+            markNotificationsAsReadByRecipeId(recipeId, user.uid)
+        ])
+
+        if (recipeSuccess) {
             setIsRead(true)
             if (onUpdate) onUpdate()
-
-            // Celebration effect could be added here (e.g. confetti)
         }
         setLoading(false)
     }

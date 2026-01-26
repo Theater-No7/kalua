@@ -27,7 +27,10 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import { doc, writeBatch } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { Coffee, EyeOff, LayoutGrid, Eye, CheckCircle2 } from "lucide-react"
+import { Coffee, EyeOff, LayoutGrid, Eye, CheckCircle2, Heart } from "lucide-react"
+
+import { useUser } from "@/hooks/useUser"
+import { useAuth } from "@/contexts/AuthContext"
 
 // Types
 interface HelperRecipe {
@@ -453,20 +456,42 @@ interface BoardCardProps {
 
 function BoardCard({ recipe, onClick, isOverlay, isReadOnly, totalStaffCount = 0 }: BoardCardProps) {
     const isHidden = recipe.isVisible === false
+    const { user } = useAuth()
+    const { isBookmarked } = useUser()
 
-    // Use SINGLE display name if available, else standard fallback
     const catName = recipe.displayCategoryName || recipe.category
+
+    // Logic
+    const isUnread = isReadOnly && user && !recipe.readBy?.includes(user.uid)
+    const isFav = isBookmarked(recipe.id)
 
     return (
         <div
             onClick={onClick}
             className={`
-                bg-white p-3 rounded-xl border shadow-sm text-left
+                bg-white p-3 rounded-xl border shadow-sm text-left relative
                 ${isReadOnly ? "cursor-default" : "cursor-grab active:cursor-grabbing group hover:border-emerald-500/30 hover:shadow-md transition-all"}
                 ${isOverlay ? "scale-105 shadow-xl border-emerald-500 rotate-2 cursor-grabbing" : "border-gray-200"}
                 ${isHidden ? "opacity-60 grayscale" : ""}
             `}
         >
+            {/* Bookmark Badge */}
+            {isFav && (
+                <div className="absolute -top-1.5 -right-1.5 z-10 bg-white rounded-full p-0.5 shadow-sm border border-red-100">
+                    <Heart className="w-3.5 h-3.5 fill-red-500 text-red-500" />
+                </div>
+            )}
+
+            {/* Unread Badge (Card Corner) */}
+            {isUnread && (
+                <div className="absolute -top-1 right-3 z-10">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-red-400 rounded-full animate-ping opacity-75"></div>
+                        <div className="relative w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex gap-3">
                 {/* Thumbnail */}
                 <div className="w-16 h-16 rounded-lg bg-gray-100 shrink-0 overflow-hidden relative border border-gray-100">

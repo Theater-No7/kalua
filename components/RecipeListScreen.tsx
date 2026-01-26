@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
-import { Search, Plus, LayoutList, Kanban, Filter, Trash2, Eye, EyeOff, CheckSquare, X } from "lucide-react"
+import { Search, Plus, LayoutList, Kanban, Filter, Trash2, Eye, EyeOff, CheckSquare, X, Bell } from "lucide-react"
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, writeBatch, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
@@ -15,6 +15,7 @@ import { RecipeCardGrid } from "./dashboard/RecipeCardGrid"
 import { RecipeListView } from "./dashboard/RecipeListView"
 import { RecipeBoardView } from "./dashboard/RecipeBoardView"
 import { RecipeSidePanel } from "./dashboard/RecipeSidePanel"
+import { NotificationsView } from "./dashboard/NotificationsView"
 
 // Type
 export interface Recipe {
@@ -47,8 +48,14 @@ interface RecipeListScreenProps {
     onLogout?: () => void
 }
 
+import { useNotifications } from "@/hooks/useNotifications"
+
+// ...
+
 export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
     const { role } = useAuth()
+    const { unreadCount } = useNotifications(shopId)
+
     // ...
     // States
     // ------------------------------------------------------------
@@ -64,7 +71,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
     const [selectedRecipeIds, setSelectedRecipeIds] = useState<Set<string>>(new Set())
 
     // View State
-    const [activeTab, setActiveTab] = useState<"recipes" | "categories" | "settings">("recipes")
+    const [activeTab, setActiveTab] = useState<"recipes" | "categories" | "settings" | "notifications">("recipes")
     const [viewMode, setViewMode] = useState<"list" | "board">("list")
 
     // Selection State (Editing)
@@ -318,6 +325,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
         <DashboardLayout
             activeTab={activeTab}
             onTabChange={setActiveTab}
+            unreadCount={unreadCount}
         >
             <div className="md:hidden">
                 {selectedRecipe && !isEditing && (
@@ -342,6 +350,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                         <h1 className="text-2xl font-bold text-gray-800">
                             {activeTab === "recipes" && "Recipes"}
                             {activeTab === "categories" && "Categories"}
+                            {activeTab === "notifications" && "Notifications"}
                             {activeTab === "settings" && "Settings"}
                         </h1>
                         <p className="text-gray-400 text-sm hidden md:block">Manage your cafe menu and settings</p>
@@ -582,6 +591,30 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                                     )}
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {activeTab === "notifications" && (
+                        <div className="flex-1 w-full h-full overflow-y-auto bg-gray-50">
+                            <NotificationsView
+                                shopId={shopId}
+                                onSelectRecipe={(recipeId) => {
+                                    const recipe = recipes.find(r => r.id === recipeId)
+                                    if (recipe) {
+                                        // Switch tab and select recipe
+                                        setActiveTab("recipes")
+                                        if (window.innerWidth < 768) {
+                                            setSelectedRecipe(recipe)
+                                            setIsEditing(false)
+                                        } else {
+                                            setSelectedRecipe(recipe)
+                                            setIsEditing(true)
+                                        }
+                                    } else {
+                                        alert("Recipe not found or deleted")
+                                    }
+                                }}
+                            />
                         </div>
                     )}
 

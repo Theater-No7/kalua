@@ -1,16 +1,17 @@
 "use client"
 
 import React from "react"
-import { Coffee, Settings, LayoutGrid } from "lucide-react"
+import { Coffee, Settings, LayoutGrid, Bell } from "lucide-react"
 
 interface DashboardLayoutProps {
     children: React.ReactNode
-    activeTab: "recipes" | "categories" | "settings"
-    onTabChange: (tab: "recipes" | "categories" | "settings") => void
+    activeTab: "recipes" | "categories" | "settings" | "notifications"
+    onTabChange: (tab: "recipes" | "categories" | "settings" | "notifications") => void
     shopName?: string
+    unreadCount?: number
 }
 
-export function DashboardLayout({ children, activeTab, onTabChange, shopName = "Kalua" }: DashboardLayoutProps) {
+export function DashboardLayout({ children, activeTab, onTabChange, shopName = "Kalua", unreadCount = 0 }: DashboardLayoutProps) {
     return (
         <div className="flex min-h-screen bg-slate-50 w-full">
             {/* Desktop Sidebar */}
@@ -36,6 +37,13 @@ export function DashboardLayout({ children, activeTab, onTabChange, shopName = "
                         onClick={() => onTabChange("categories")}
                     />
                     <SidebarItem
+                        icon={Bell}
+                        label="Notifications"
+                        isActive={activeTab === "notifications"}
+                        onClick={() => onTabChange("notifications")}
+                        badge={unreadCount > 0 ? unreadCount : undefined}
+                    />
+                    <SidebarItem
                         icon={Settings}
                         label="Settings"
                         isActive={activeTab === "settings"}
@@ -58,17 +66,24 @@ export function DashboardLayout({ children, activeTab, onTabChange, shopName = "
     )
 }
 
-function SidebarItem({ icon: Icon, label, isActive, onClick }: { icon: any, label: string, isActive: boolean, onClick: () => void }) {
+function SidebarItem({ icon: Icon, label, isActive, onClick, badge }: { icon: any, label: string, isActive: boolean, onClick: () => void, badge?: number }) {
     return (
         <button
             onClick={onClick}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
                 ? "bg-[#0f766e]/10 text-[#0f766e]"
                 : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
                 }`}
         >
-            <Icon className="w-5 h-5" />
-            {label}
+            <div className="flex items-center gap-3">
+                <Icon className="w-5 h-5" />
+                {label}
+            </div>
+            {badge !== undefined && (
+                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                    {badge > 99 ? "99+" : badge}
+                </span>
+            )}
         </button>
     )
 }
