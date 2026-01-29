@@ -4,6 +4,7 @@ import React, { useState } from "react"
 import { MessageCircle, User, Loader2 } from "lucide-react"
 import { signInWithPopup, OAuthProvider, signInAnonymously } from "firebase/auth"
 import { auth } from "@/lib/firebase"
+import { DemoLoginSection } from "./auth/DemoLoginSection"
 
 interface WelcomeScreenProps {
     onLogin: () => void
@@ -80,6 +81,8 @@ export function WelcomeScreen({ onLogin }: WelcomeScreenProps) {
                         LINEで始める
                     </button>
 
+                    {/* 既存のゲスト機能はデモ機能へ移行のため非表示 */}
+                    {/*
                     <div className="relative py-2">
                         <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t border-white/20"></span>
@@ -97,6 +100,10 @@ export function WelcomeScreen({ onLogin }: WelcomeScreenProps) {
                         <User className="w-4 h-4" />
                         ゲストとして利用（機能制限あり）
                     </button>
+                    */}
+
+                    {/* ✨ ポートフォリオ用デモログインセクション */}
+                    <DemoLoginSection />
                 </div>
 
                 <p className="mt-8 text-center text-[10px] text-emerald-100/60">

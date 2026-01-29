@@ -2,6 +2,8 @@
 
 import React from "react"
 import { Coffee, Settings, LayoutGrid, Bell } from "lucide-react"
+import { DebugInfoOverlay } from "@/components/debug/DebugInfoOverlay"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface DashboardLayoutProps {
     children: React.ReactNode
@@ -12,6 +14,8 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, activeTab, onTabChange, shopName = "Kalua", unreadCount = 0 }: DashboardLayoutProps) {
+    const { role } = useAuth()
+
     return (
         <div className="flex min-h-screen bg-slate-50 w-full">
             {/* Desktop Sidebar */}
@@ -30,12 +34,16 @@ export function DashboardLayout({ children, activeTab, onTabChange, shopName = "
                         isActive={activeTab === "recipes"}
                         onClick={() => onTabChange("recipes")}
                     />
-                    <SidebarItem
-                        icon={LayoutGrid}
-                        label="Categories"
-                        isActive={activeTab === "categories"}
-                        onClick={() => onTabChange("categories")}
-                    />
+
+                    {role === 'OWNER' && (
+                        <SidebarItem
+                            icon={LayoutGrid}
+                            label="Categories"
+                            isActive={activeTab === "categories"}
+                            onClick={() => onTabChange("categories")}
+                        />
+                    )}
+
                     <SidebarItem
                         icon={Bell}
                         label="Notifications"
@@ -62,6 +70,9 @@ export function DashboardLayout({ children, activeTab, onTabChange, shopName = "
             <main className="flex-1 min-w-0 md:bg-white md:m-0 w-full">
                 {children}
             </main>
+
+            {/* Debug Info Overlay */}
+            <DebugInfoOverlay />
         </div>
     )
 }

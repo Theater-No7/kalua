@@ -5,7 +5,7 @@ import { onAuthStateChanged, User, signOut } from "firebase/auth"
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 
-export type UserRole = "OWNER" | "STAFF"
+export type UserRole = "OWNER" | "STAFF" | "GUEST"
 
 interface AuthContextType {
     user: User | MockUser | null
@@ -28,7 +28,7 @@ interface MockUser {
 const AuthContext = createContext<AuthContextType>({
     user: null,
     shopId: null,
-    role: "OWNER", // Default for now
+    role: "GUEST", // Default for now
     loading: true,
     loginAsDebugUser: () => { },
     logout: async () => { }
@@ -41,7 +41,7 @@ const DEBUG_STORAGE_KEY = "kalua_debug_auth"
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | MockUser | null>(null)
     const [shopId, setShopId] = useState<string | null>(null)
-    const [role, setRole] = useState<UserRole>("OWNER")
+    const [role, setRole] = useState<UserRole>("GUEST")
     const [loading, setLoading] = useState(true)
 
     // Initial Load
@@ -71,10 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     // Fetch generic user data and shopId
                     // Note: In real app, "role" might be in custom claims or DB.
                     // For now, if logged in via Firebase, we assume "OWNER" behavior or "STAFF" if anonymous?
+                    let finalRole: UserRole = "GUEST"
+
+                    // Default assumption based on auth method
                     if (currentUser.isAnonymous) {
-                        setRole("STAFF")
-                    } else {
-                        setRole("OWNER")
+                        finalRole = "STAFF"
                     }
 
                     try {
@@ -83,24 +84,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                         if (userSnap.exists()) {
                             const userData = userSnap.data()
+
+                            // Prioritize role from Firestore
+                            if (userData.role) {
+                                const dbRole = String(userData.role).toUpperCase()
+                                if (dbRole === "STAFF" || dbRole === "OWNER") {
+                                    finalRole = dbRole as UserRole
+                                }
+                            }
+
                             if (userData.shopId) {
                                 setShopId(userData.shopId)
                             }
                         } else {
-                            // First time user logic (moved from page.tsx)
+                            // First time user logic
+                            // Determine default role if not in DB
+                            const defaultRole: UserRole = currentUser.isAnonymous ? "STAFF" : "OWNER"
+                            finalRole = defaultRole
+
+                            // Create user in DB with the determined role
                             await setDoc(userRef, {
                                 id: currentUser.uid,
                                 name: currentUser.displayName || (currentUser.isAnonymous ? "ゲストスタッフ" : "No Name"),
                                 photoURL: currentUser.photoURL || null,
                                 createdAt: serverTimestamp(),
+                                role: finalRole
                             })
                         }
                     } catch (error) {
                         console.error("User DB sync failed:", error)
                     }
+
+                    setRole(finalRole)
                 } else {
                     setUser(null)
                     setShopId(null)
+                    setRole("GUEST")
                 }
                 setLoading(false)
             })
@@ -128,11 +147,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Fixed Shop ID for debugging
         const DEBUG_SHOP_ID = "debug-shop-001"
         setShopId(DEBUG_SHOP_ID)
-
-        // Ensure this mock shop/user exists in Firestore for reads to work?
-        // Actually, we might need to ensure the shop doc exists or code will fail on reads.
-        // For 'dev', we assume data exists or we create it lazily?
-        // For now, let's just set the ID. 
     }
 
     const loginAsDebugUser = (role: UserRole, uid: string) => {
@@ -143,9 +157,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Force state update strictly
         setActiveDebugUser(role, uid)
-
-        // Reload to ensure clean state? 
-        // window.location.reload() // Optional, but hot-reloading context is better UX
     }
 
     const logout = async () => {
@@ -155,7 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await signOut(auth)
         setUser(null)
         setShopId(null)
-        setRole("OWNER") // Default reset
+        setRole("GUEST")
     }
 
     return (
