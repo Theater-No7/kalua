@@ -2,7 +2,7 @@
 
 import React from "react"
 import { Coffee, Settings, LayoutGrid, Bell } from "lucide-react"
-import { DebugInfoOverlay } from "@/components/debug/DebugInfoOverlay"
+// import { DebugInfoOverlay } from "@/components/debug/DebugInfoOverlay"
 import { useAuth } from "@/contexts/AuthContext"
 
 interface DashboardLayoutProps {
@@ -72,7 +72,7 @@ export function DashboardLayout({ children, activeTab, onTabChange, shopName = "
             </main>
 
             {/* Debug Info Overlay */}
-            <DebugInfoOverlay />
+            {/*  <DebugInfoOverlay /> */}
         </div>
     )
 }
