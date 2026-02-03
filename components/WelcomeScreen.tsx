@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import Image from "next/image"
 import { MessageCircle, User, Loader2 } from "lucide-react"
 import { signInWithPopup, OAuthProvider, signInAnonymously } from "firebase/auth"
 import { auth } from "@/lib/firebase"
@@ -59,11 +60,23 @@ export function WelcomeScreen({ onLogin }: WelcomeScreenProps) {
 
                 {/* ロゴエリア */}
                 <div className="flex flex-col items-center mb-10">
-                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-lg mb-4 rotate-3">
+                    {/* ☕️ アイコン  */}
+                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-lg mb-4 rotate-3 transition-transform hover:rotate-0">
                         <span className="text-4xl">☕️</span>
                     </div>
-                    <h1 className="text-3xl font-bold text-white tracking-wide">Kalua</h1>
-                    <p className="text-emerald-100 text-sm mt-1 font-medium">Cafe Recipe Manager</p>
+
+                    {/* ロゴ画像  */}
+                    <div className="relative w-40 h-40 mb-1">
+                        <Image
+                            src="/kalua_white-removebg.png"
+                            alt="Kalua Logo"
+                            fill
+                            className="object-contain"
+                            priority
+                        />
+                    </div>
+
+                    <p className="text-emerald-100 text-sm font-medium">Cafe Recipe Manager</p>
                 </div>
 
                 {/* ボタンエリア */}
@@ -80,27 +93,6 @@ export function WelcomeScreen({ onLogin }: WelcomeScreenProps) {
                         )}
                         LINEで始める
                     </button>
-
-                    {/* 既存のゲスト機能はデモ機能へ移行のため非表示 */}
-                    {/*
-                    <div className="relative py-2">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t border-white/20"></span>
-                        </div>
-                        <div className="relative flex justify-center text-xs">
-                            <span className="px-2 text-emerald-100 bg-transparent">または</span>
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={handleGuestLogin}
-                        disabled={isLoading}
-                        className="w-full bg-white text-[#0f766e] hover:bg-emerald-50 active:scale-[0.98] font-bold py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                        <User className="w-4 h-4" />
-                        ゲストとして利用（機能制限あり）
-                    </button>
-                    */}
 
                     {/* ✨ ポートフォリオ用デモログインセクション */}
                     <DemoLoginSection />
