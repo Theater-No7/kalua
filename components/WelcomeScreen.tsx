@@ -54,7 +54,7 @@ export function WelcomeScreen({ onLogin }: WelcomeScreenProps) {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-br from-[#0f766e] to-[#0d9488]">
+        <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-linear-to-br from-[#0f766e] to-[#0d9488]">
             <div className="w-full max-w-sm bg-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/20">
 
                 {/* ロゴエリア */}

@@ -378,7 +378,7 @@ function ItemContent({ category, dragListeners, onDelete, onUpdateName, onToggle
                         placeholder="Category Name"
                     />
                 ) : (
-                    <div className="text-base font-medium text-gray-800 cursor-text truncate py-[1px]">
+                    <div className="text-base font-medium text-gray-800 cursor-text truncate py-px">
                         {nameVal}
                     </div>
                 )}

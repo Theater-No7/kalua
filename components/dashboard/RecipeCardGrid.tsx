@@ -63,7 +63,7 @@ export function RecipeCardGrid({ recipes, onSelect, onToggleVisibility }: Recipe
                             </button>
                         )}
 
-                        <div className="relative aspect-[3/2] bg-[#f8fafc]">
+                        <div className="relative aspect-3/2 bg-[#f8fafc]">
                             {recipe.image ? (
                                 <img src={recipe.image} alt={recipe.title} className={`w-full h-full object-cover ${!isVisible ? "grayscale" : ""}`} />
                             ) : (
@@ -79,7 +79,7 @@ export function RecipeCardGrid({ recipes, onSelect, onToggleVisibility }: Recipe
                                     {recipe.title}
                                 </h3>
                                 {user && !recipe.readBy?.includes(user.uid) && (
-                                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full ml-2 flex-shrink-0 mt-1" />
+                                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full ml-2 shrink-0 mt-1" />
                                 )}
                             </div>
 

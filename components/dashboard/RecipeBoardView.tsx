@@ -365,7 +365,7 @@ function BoardColumn({ id, title, count, items, onSelect, isUncategorized, activ
     return (
         <div
             ref={setNodeRef} // Apply Ref to optimal outer wrapper
-            className={`flex flex-col w-80 h-full max-h-full rounded-2xl border flex-shrink-0 transition-colors duration-200
+            className={`flex flex-col w-80 h-full max-h-full rounded-2xl border shrink-0 transition-colors duration-200
                 ${isActive && !isReadOnly ? "bg-gray-200 border-emerald-400/50" : "bg-gray-100/50 border-gray-200/50"}
             `}
         >

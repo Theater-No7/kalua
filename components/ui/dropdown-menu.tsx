@@ -71,7 +71,7 @@ export const DropdownMenuContent = ({ children, align = "center", className }: {
 
     return (
         <div className={cn(
-            "absolute z-50 mt-2 min-w-[8rem] overflow-hidden rounded-md border border-slate-200 bg-white p-1 text-slate-950 shadow-md",
+            "absolute z-50 mt-2 min-w-32 overflow-hidden rounded-md border border-slate-200 bg-white p-1 text-slate-950 shadow-md",
             alignClass,
             className
         )}>
@@ -90,7 +90,7 @@ export const DropdownMenuItem = ({ children, onClick, className }: { children: R
                 setOpen(false)
             }}
             className={cn(
-                "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-slate-100 hover:text-slate-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-slate-100 hover:text-slate-900 data-disabled:pointer-events-none data-disabled:opacity-50",
                 className
             )}
         >

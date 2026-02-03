@@ -91,7 +91,7 @@ function SidebarItem({ icon: Icon, label, isActive, onClick, badge }: { icon: an
                 {label}
             </div>
             {badge !== undefined && (
-                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center">
                     {badge > 99 ? "99+" : badge}
                 </span>
             )}

@@ -54,7 +54,7 @@ export const SelectContent = ({ children }: { children: React.ReactNode }) => {
     const { open } = React.useContext(SelectContext)!
     if (!open) return null
     return (
-        <div className="absolute top-full z-50 mt-1 max-h-96 w-full min-w-[8rem] overflow-hidden rounded-md border border-slate-200 bg-white text-slate-950 shadow-md">
+        <div className="absolute top-full z-50 mt-1 max-h-96 w-full min-w-32 overflow-hidden rounded-md border border-slate-200 bg-white text-slate-950 shadow-md">
             <div className="p-1">{children}</div>
         </div>
     )
@@ -78,7 +78,7 @@ export const SelectItem = ({ children, value, className }: { children: React.Rea
                 setOpen(false)
             }}
             className={cn(
-                "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 data-disabled:pointer-events-none data-disabled:opacity-50",
                 className
             )}
         >
