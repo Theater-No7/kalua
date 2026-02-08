@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase"
 
 import { AddRecipeModal } from "./AddRecipeModal"
 import { RecipeDetailScreen } from "./RecipeDetailScreen"
-import { ShopSettingsModal } from "./ShopSettingsModal"
+
 import { CategorySettingsView } from "./CategorySettingsView"
 
 import { DashboardLayout } from "./layouts/DashboardLayout"
@@ -46,13 +46,14 @@ import { useAuth } from "@/contexts/AuthContext"
 interface RecipeListScreenProps {
     shopId: string
     onLogout?: () => void
+    onOpenSettings?: () => void
 }
 
 import { useNotifications } from "@/hooks/useNotifications"
 
 // ...
 
-export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
+export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeListScreenProps) {
     const { role } = useAuth()
     const { unreadCount } = useNotifications(shopId)
 
@@ -78,7 +79,6 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
     const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [isMobileModalOpen, setIsMobileModalOpen] = useState(false)
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
     // ------------------------------------------------------------
     // Data Fetching
@@ -324,7 +324,13 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
     return (
         <DashboardLayout
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={(tab) => {
+                if (tab === 'settings') {
+                    if (onOpenSettings) onOpenSettings()
+                    return
+                }
+                setActiveTab(tab)
+            }}
             unreadCount={unreadCount}
         >
             <div className="md:hidden">
@@ -352,7 +358,6 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                             {activeTab === "recipes" && "Recipes"}
                             {activeTab === "categories" && "Categories"}
                             {activeTab === "notifications" && "Notifications"}
-                            {activeTab === "settings" && "Settings"}
                         </h1>
                         <p className="text-gray-400 text-sm hidden md:block">Manage your cafe menu and settings</p>
                     </div>
@@ -367,7 +372,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                                 <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white transform translate-x-1/4 -translate-y-1/4"></span>
                             )}
                         </button>
-                        <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-gray-50 rounded-full">
+                        <button onClick={() => onOpenSettings && onOpenSettings()} className="p-2 bg-gray-50 rounded-full">
                             <SettingsIcon />
                         </button>
                     </div>
@@ -584,25 +589,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                         </div>
                     )}
 
-                    {activeTab === "settings" && (
-                        <div className="flex-1 p-6 md:p-8">
-                            <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="p-8 text-center">
-                                    <h3 className="font-bold text-gray-800 mb-2">Shop ID</h3>
-                                    <code className="bg-gray-100 px-4 py-2 rounded-lg block mb-6">{shopId}</code>
 
-                                    {onLogout && (
-                                        <button
-                                            onClick={onLogout}
-                                            className="text-red-500 font-bold hover:bg-red-50 px-6 py-2 rounded-lg transition-colors"
-                                        >
-                                            Logout
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                     {activeTab === "notifications" && (
                         <div className="flex-1 w-full h-full overflow-y-auto bg-gray-50">
@@ -656,12 +643,7 @@ export function RecipeListScreen({ shopId, onLogout }: RecipeListScreenProps) {
                 />
             </div>
 
-            <ShopSettingsModal
-                isOpen={isSettingsOpen}
-                onClose={() => setIsSettingsOpen(false)}
-                shopId={shopId}
-                onLogout={onLogout}
-            />
+
 
         </DashboardLayout>
     )

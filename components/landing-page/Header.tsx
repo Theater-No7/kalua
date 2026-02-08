@@ -24,7 +24,7 @@ export function Header() {
                     </div>
                 </Link>
 
-                <Link href="https://kalua-app.vercel.app/">
+                <Link href="/dashboard">
                     <Button
                         size="lg"
                         className="hidden rounded-full bg-white text-primary hover:bg-white/90 font-bold shadow-sm sm:inline-flex"

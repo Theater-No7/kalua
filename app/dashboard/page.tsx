@@ -8,6 +8,7 @@ import { WelcomeScreen } from "@/components/WelcomeScreen"
 import { RecipeListScreen } from "@/components/RecipeListScreen"
 import { CreateShopScreen } from "@/components/CreateShopScreen"
 import { DebugLoginPanel } from "@/components/debug/DebugLoginPanel"
+import { ShopSettingsModal } from "@/components/ShopSettingsModal"
 
 export default function Page() {
     const { user, shopId, role, loading, logout: handleLogout } = useAuth()
@@ -63,9 +64,23 @@ function MainContent({ user, shopId, role, handleLogout }: any) {
     // Future: Routing based on Role
     // if (role === 'STAFF') return <StaffScreen ... />
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [isSettingsOpen, setIsSettingsOpen] = React.useState(false)
+
     return (
         <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl overflow-hidden md:max-w-none md:w-full md:mx-0 md:h-screen md:flex md:shadow-none">
-            <RecipeListScreen shopId={shopId} onLogout={handleLogout} />
+            <RecipeListScreen
+                shopId={shopId}
+                onLogout={handleLogout}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+            />
+
+            <ShopSettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                shopId={shopId}
+                onLogout={handleLogout}
+            />
         </div>
     )
 }

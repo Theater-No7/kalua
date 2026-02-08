@@ -14,7 +14,7 @@ export function HeroSection() {
                     {"小規模カフェのためのレシピ・マニュアル管理アプリ。教育コストを削減し、最高の一杯に集中できる環境を。"}
                 </p>
 
-                <Link href="https://kalua-app.vercel.app/">
+                <Link href="/dashboard">
                     <Button
                         size="lg"
                         className="rounded-full bg-primary px-10 py-6 text-lg font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-shadow hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
