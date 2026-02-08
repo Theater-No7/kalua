@@ -128,14 +128,14 @@ export function CategorySettingsView({ shopId }: CategorySettingsViewProps) {
             })
         } catch (error) {
             console.error("Failed to add category:", error)
-            alert("Failed to add category")
+            alert("カテゴリの追加に失敗しました")
         } finally {
             setIsCreating(false)
         }
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Delete this category?")) return
+        if (!confirm("このカテゴリを削除しますか？")) return
         try {
             await deleteDoc(doc(db, "stores", shopId, "categories", id))
         } catch (error) {
@@ -196,8 +196,8 @@ export function CategorySettingsView({ shopId }: CategorySettingsViewProps) {
                 <div className="max-w-3xl mx-auto">
                     <div className="mb-6 flex items-center justify-between">
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-800">Categories</h2>
-                            <p className="text-gray-400 mt-1">Manage your menu categories</p>
+                            <h2 className="text-2xl font-bold text-gray-800">カテゴリ</h2>
+                            <p className="text-gray-400 mt-1">メニューカテゴリの管理</p>
                         </div>
                     </div>
 
@@ -245,7 +245,7 @@ export function CategorySettingsView({ shopId }: CategorySettingsViewProps) {
                         <div className="w-5 flex justify-center">
                             {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-5 h-5" />}
                         </div>
-                        <span>Add Category</span>
+                        <span>カテゴリを追加</span>
                     </button>
 
                 </div>
@@ -375,7 +375,7 @@ function ItemContent({ category, dragListeners, onDelete, onUpdateName, onToggle
                         onBlur={handleBlur}
                         onKeyDown={handleKeyDown}
                         className="w-full text-base font-medium text-gray-900 bg-transparent outline-none placeholder-gray-300"
-                        placeholder="Category Name"
+                        placeholder="カテゴリ名"
                     />
                 ) : (
                     <div className="text-base font-medium text-gray-800 cursor-text truncate py-px">
@@ -399,7 +399,7 @@ function ItemContent({ category, dragListeners, onDelete, onUpdateName, onToggle
                                 : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
                             }
                         `}
-                        title={visible ? "Hide Category" : "Show Category"}
+                        title={visible ? "カテゴリを非公開にする" : "カテゴリを公開する"}
                     >
                         {visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
@@ -416,7 +416,7 @@ function ItemContent({ category, dragListeners, onDelete, onUpdateName, onToggle
                             rounded-lg opacity-0 group-hover:opacity-100 focus:opacity-100
                             transition-all duration-200
                         "
-                        title="Delete Category"
+                        title="カテゴリを削除"
                     >
                         <Trash2 className="w-4 h-4" />
                     </button>

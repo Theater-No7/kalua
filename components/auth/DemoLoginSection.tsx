@@ -5,8 +5,7 @@ import { signInWithEmailAndPassword } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 import { Loader2, Shield, User } from "lucide-react"
 
-// useRouterは削除してOKですが、残っていてもエラーにはなりません
-// import { useRouter } from "next/navigation" 
+import { useRouter } from "next/navigation"
 
 const DEMO_CREDENTIALS = {
     OWNER: {
@@ -20,7 +19,7 @@ const DEMO_CREDENTIALS = {
 }
 
 export function DemoLoginSection() {
-    // const router = useRouter() // 今回はwindow.locationを使うので不要
+    const router = useRouter()
     const [isLoading, setIsLoading] = useState<{ owner: boolean, staff: boolean }>({ owner: false, staff: false })
 
     const handleDemoLogin = async (role: 'OWNER' | 'STAFF') => {
@@ -34,8 +33,8 @@ export function DemoLoginSection() {
 
             console.log(`Login successful as ${role}`)
 
-            // router.push('/dashboard') ではなく、ルート('/')へリロード遷移します
-            window.location.href = '/'
+            // ダッシュボードへ遷移
+            router.push('/dashboard')
 
         } catch (error: any) {
             console.error("Demo login failed:", error)

@@ -161,7 +161,7 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
         }
 
         // Resolve Name
-        const name = categories.find(c => c.id === catId)?.name || r.category || "Uncategorized"
+        const name = categories.find(c => c.id === catId)?.name || r.category || "未分類"
 
         return {
             ...r,
@@ -240,13 +240,13 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
             setSelectedRecipeIds(new Set()) // Clear selection
         } catch (error) {
             console.error("Batch update failed", error)
-            alert("Failed to update recipes")
+            alert("レシピの更新に失敗しました")
         }
     }
 
     const handleBatchDelete = async () => {
         if (selectedRecipeIds.size === 0) return
-        if (!window.confirm(`Delete ${selectedRecipeIds.size} recipes? This cannot be undone.`)) return
+        if (!window.confirm(`${selectedRecipeIds.size}件のレシピを削除しますか？この操作は取り消せません。`)) return
 
         try {
             const batch = writeBatch(db)
@@ -258,7 +258,7 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
             setSelectedRecipeIds(new Set()) // Clear selection
         } catch (error) {
             console.error("Batch delete failed", error)
-            alert("Failed to delete recipes")
+            alert("レシピの削除に失敗しました")
         }
     }
 
@@ -266,15 +266,15 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
     // Single Handlers
     // ------------------------------------------------------------
     const handleDeleteRecipe = async (recipeId: string) => {
-        if (!window.confirm("Are you sure you want to delete this recipe?")) return
+        if (!window.confirm("このレシピを削除してもよろしいですか？")) return
         try {
             await deleteDoc(doc(db, "stores", shopId, "recipes", recipeId))
             setSelectedRecipe(null)
             setIsEditing(false)
-            alert("Deleted")
+            alert("削除しました")
         } catch (error) {
             console.error("Error deleting: ", error)
-            alert("Failed to delete")
+            alert("削除に失敗しました")
         }
     }
 
@@ -287,7 +287,7 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
             })
         } catch (error) {
             console.error("Error toggling visibility: ", error);
-            alert("Failed to update status")
+            alert("ステータスの更新に失敗しました")
         }
     }
 
@@ -355,11 +355,11 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
                 <div className="px-6 py-6 md:px-8 md:py-8 bg-white border-b border-gray-100 flex justify-between items-center sticky top-0 z-10">
                     <div className="flex-1">
                         <h1 className="text-2xl font-bold text-gray-800">
-                            {activeTab === "recipes" && "Recipes"}
-                            {activeTab === "categories" && "Categories"}
-                            {activeTab === "notifications" && "Notifications"}
+                            {activeTab === "recipes" && "レシピ"}
+                            {activeTab === "categories" && "カテゴリ"}
+                            {activeTab === "notifications" && "通知"}
                         </h1>
-                        <p className="text-gray-400 text-sm hidden md:block">Manage your cafe menu and settings</p>
+                        <p className="text-gray-400 text-sm hidden md:block">カフェのメニューと設定を管理します</p>
                     </div>
 
                     <div className="md:hidden flex items-center gap-2">
@@ -383,7 +383,7 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
                             className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#0f766e] text-white rounded-lg font-bold hover:bg-[#0d6560] transition-colors shadow-sm"
                         >
                             <Plus className="w-5 h-5" />
-                            <span className="text-sm">New Recipe</span>
+                            <span className="text-sm">新規レシピ</span>
                         </button>
                     )}
                 </div>
@@ -401,7 +401,7 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
                                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                                         <input
                                             type="text"
-                                            placeholder="Search recipes..."
+                                            placeholder="レシピを検索..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             className="w-full bg-gray-50 rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-[#0f766e]/20 transition-all border border-transparent focus:border-[#0f766e]/30"
@@ -416,14 +416,14 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
                                             <button
                                                 onClick={() => setViewMode("list")}
                                                 className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
-                                                title="List View"
+                                                title="リスト表示"
                                             >
                                                 <LayoutList className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => setViewMode("board")}
                                                 className={`p-1.5 rounded-md transition-all ${viewMode === "board" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
-                                                title="Board View"
+                                                title="ボード表示"
                                             >
                                                 <Kanban className="w-4 h-4" />
                                             </button>
@@ -439,7 +439,7 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
                                                 onChange={(e) => setSelectedTag(e.target.value)}
                                                 className="pl-9 pr-8 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 appearance-none focus:ring-2 focus:ring-[#0f766e]/20 outline-none cursor-pointer"
                                             >
-                                                <option value="All">All Tags</option>
+                                                <option value="All">すべてのタグ</option>
                                                 {allTags.map(tag => (
                                                     <option key={tag} value={tag}>#{tag}</option>
                                                 ))}
@@ -451,7 +451,7 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
                                             <FilterButton
                                                 active={selectedCategoryId === "All"}
                                                 onClick={() => setSelectedCategoryId("All")}
-                                                label="All"
+                                                label="すべて"
                                             />
                                             {categories.map((cat) => (
                                                 <FilterButton
@@ -522,28 +522,28 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
                                                 <div className="bg-[#0f766e] text-white text-xs font-bold px-2 py-0.5 rounded-full">
                                                     {selectedRecipeIds.size}
                                                 </div>
-                                                <span className="text-sm font-medium">Selected</span>
+                                                <span className="text-sm font-medium">選択中</span>
                                             </div>
 
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     onClick={() => handleBatchVisibility(true)}
                                                     className="p-2 hover:bg-gray-800 rounded-full transition-colors text-gray-300 hover:text-white tooltip-trigger"
-                                                    title="Show All"
+                                                    title="公開にする"
                                                 >
                                                     <Eye className="w-5 h-5" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleBatchVisibility(false)}
                                                     className="p-2 hover:bg-gray-800 rounded-full transition-colors text-gray-300 hover:text-white"
-                                                    title="Hide All"
+                                                    title="非公開にする"
                                                 >
                                                     <EyeOff className="w-5 h-5" />
                                                 </button>
                                                 <button
                                                     onClick={handleBatchDelete}
                                                     className="p-2 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-colors text-gray-300 ml-2"
-                                                    title="Delete"
+                                                    title="削除"
                                                 >
                                                     <Trash2 className="w-5 h-5" />
                                                 </button>
@@ -609,7 +609,7 @@ export function RecipeListScreen({ shopId, onLogout, onOpenSettings }: RecipeLis
                                             setIsEditing(true)
                                         }
                                     } else {
-                                        alert("Recipe not found or deleted")
+                                        alert("レシピが見つからないか削除されています")
                                         // Optional: Delete notification automatically here? 
                                         // For now just alert as requested.
                                     }

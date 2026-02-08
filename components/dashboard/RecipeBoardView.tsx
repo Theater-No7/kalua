@@ -260,7 +260,7 @@ export function RecipeBoardView({ shopId, recipes, categories, onSelect, isReadO
                 const cat = categories.find(c => c.id === targetColId)
                 if (cat) updates.category = cat.name
             } else {
-                updates.category = "Uncategorized"
+                updates.category = "未分類"
             }
 
             batch.update(ref, updates)
@@ -299,7 +299,7 @@ export function RecipeBoardView({ shopId, recipes, categories, onSelect, isReadO
                     {/* Uncategorized Column */}
                     <BoardColumn
                         id={UNNAMED_ID}
-                        title="Uncategorized"
+                        title="未分類"
                         count={columns[UNNAMED_ID]?.length || 0}
                         items={columns[UNNAMED_ID] || []}
                         onSelect={onSelect}
@@ -399,12 +399,12 @@ function BoardColumn({ id, title, count, items, onSelect, isUncategorized, activ
 
                 {items.length === 0 && !isReadOnly && (
                     <div className="h-full w-full flex items-center justify-center text-gray-400 text-xs italic pointer-events-none min-h-[100px]">
-                        Drop here
+                        ここにドロップ
                     </div>
                 )}
                 {items.length === 0 && isReadOnly && (
                     <div className="h-full w-full flex items-center justify-center text-gray-300 text-xs italic min-h-[50px]">
-                        Empty
+                        空
                     </div>
                 )}
             </div>
@@ -524,7 +524,7 @@ function BoardCard({ recipe, onClick, isOverlay, isReadOnly, totalStaffCount = 0
                                 </span>
                             ))
                         ) : (
-                            <span className="text-[10px] text-gray-300 italic">No Tags</span>
+                            <span className="text-[10px] text-gray-300 italic">タグなし</span>
                         )}
                     </div>
 

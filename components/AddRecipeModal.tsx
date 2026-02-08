@@ -20,7 +20,7 @@ export function AddRecipeModal({ isOpen, onClose, onSave, editingRecipe, shopId 
             <div className="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-md h-[90vh] md:h-auto md:max-h-[90vh] overflow-y-auto shadow-xl flex flex-col">
                 <div className="sticky top-0 bg-white z-10 flex items-center justify-between p-4 border-b border-gray-100">
                     <h2 className="text-lg font-bold text-gray-800">
-                        {editingRecipe ? "Edit Recipe" : "New Recipe"}
+                        {editingRecipe ? "レシピを編集" : "新規レシピ"}
                     </h2>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                         <X className="w-5 h-5 text-gray-500" />

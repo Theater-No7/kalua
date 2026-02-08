@@ -19,7 +19,7 @@ interface RecipeFormProps {
     hideActions?: boolean
 }
 
-const TAG_PRESETS = ["New", "Seasonal", "Limited", "Sold Out", "Recommended", "Hot", "Iced"]
+const TAG_PRESETS = ["新作", "季節限定", "期間限定", "売り切れ", "おすすめ", "HOT", "ICED"]
 
 export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopId, initialData, onSave, onCancel, hideActions }, ref) => {
     // Categories from Firestore
@@ -153,11 +153,11 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
 
     const handleSubmit = async () => {
         if (!title) {
-            alert("Please enter a recipe title")
+            alert("レシピ名を入力してください")
             throw new Error("Validation Error")
         }
         if (!selectedCategoryId) {
-            alert("Please select a category")
+            alert("カテゴリを選択してください")
             throw new Error("Validation Error")
         }
 
@@ -174,7 +174,7 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
             }
 
             const cleanIngredients = ingredients.filter(i => i.trim() !== "")
-            const catName = categories.find(c => c.id === selectedCategoryId)?.name || "Uncategorized";
+            const catName = categories.find(c => c.id === selectedCategoryId)?.name || "未分類";
 
             const recipeData = {
                 title,
@@ -197,7 +197,7 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
             onSave()
         } catch (error) {
             console.error("Error saving document: ", error)
-            alert("Failed to save")
+            alert("保存に失敗しました")
             throw error
         } finally {
             setIsSubmitting(false)
@@ -215,13 +215,13 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
                     <>
                         <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="text-white font-bold">Change Image</span>
+                            <span className="text-white font-bold">画像を変更</span>
                         </div>
                     </>
                 ) : (
                     <div className="flex flex-col items-center p-8">
                         <Upload className="w-8 h-8 mb-2" />
-                        <span className="text-sm font-medium">Upload Photo</span>
+                        <span className="text-sm font-medium">写真をアップロード</span>
                     </div>
                 )}
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
@@ -235,8 +235,8 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
                             {isVisible ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
                         </div>
                         <div>
-                            <h3 className="font-semibold text-gray-800 text-sm">Visibility</h3>
-                            <p className="text-xs text-gray-400">{isVisible ? "Visible to everyone" : "Hidden from menu"}</p>
+                            <h3 className="font-semibold text-gray-800 text-sm">公開設定</h3>
+                            <p className="text-xs text-gray-400">{isVisible ? "メニューに表示" : "メニューから隠す"}</p>
                         </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -252,8 +252,8 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
                             <Bell className="w-5 h-5" />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-gray-800 text-sm">Notify Staff</h3>
-                            <p className="text-xs text-gray-400">{notifyStaff ? "Will send alert" : "Silent update"}</p>
+                            <h3 className="font-semibold text-gray-800 text-sm">スタッフに通知</h3>
+                            <p className="text-xs text-gray-400">{notifyStaff ? "通知を送る" : "通知なしで更新"}</p>
                         </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -265,12 +265,12 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
 
             {/* Title */}
             <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Recipe Name</label>
+                <label className="text-sm font-semibold text-gray-700">レシピ名</label>
                 <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Iced Caramel Latte"
+                    placeholder="例：アイスキャラメルラテ"
                     className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-[#0f766e] outline-none transition-all font-medium"
                 />
             </div>
@@ -278,7 +278,7 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
             {/* Category (Single Select) */}
             <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                    <label className="text-sm font-semibold text-gray-700">Category <span className="text-red-500">*</span></label>
+                    <label className="text-sm font-semibold text-gray-700">カテゴリ <span className="text-red-500">*</span></label>
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {categories.map((cat) => {
@@ -306,7 +306,7 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
 
             {/* Tags */}
             <div className="space-y-3">
-                <label className="text-sm font-semibold text-gray-700">Tags</label>
+                <label className="text-sm font-semibold text-gray-700">タグ</label>
 
                 {/* Input */}
                 <div className="flex gap-2">
@@ -314,7 +314,7 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
                         type="text"
                         value={tagInput}
                         onChange={(e) => setTagInput(e.target.value)}
-                        placeholder="Type tag & enter..."
+                        placeholder="タグを入力してEnter..."
                         className="flex-1 p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-[#0f766e] outline-none"
                         onKeyDown={(e) => e.key === "Enter" && handleAddTag()}
                     />
@@ -349,7 +349,7 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
                 {/* Presets */}
                 <div className="pt-2 border-t border-gray-100">
                     <div className="text-xs text-gray-400 font-medium mb-2 flex items-center gap-1">
-                        <Tag className="w-3 h-3" /> Presets
+                        <Tag className="w-3 h-3" /> プリセット
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {TAG_PRESETS.map(preset => (
@@ -371,7 +371,7 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
 
             {/* Ingredients */}
             <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Ingredients</label>
+                <label className="text-sm font-semibold text-gray-700">材料</label>
                 <div className="space-y-2">
                     {ingredients.map((ingredient, index) => (
                         <div key={index} className="flex gap-2">
@@ -379,7 +379,7 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
                                 type="text"
                                 value={ingredient}
                                 onChange={(e) => handleIngredientChange(index, e.target.value)}
-                                placeholder="e.g. Espresso 30ml"
+                                placeholder="例：エスプレッソ 30ml"
                                 className="flex-1 p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-[#0f766e] outline-none"
                             />
                             {ingredients.length > 1 && (
@@ -396,18 +396,18 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
                         onClick={addIngredientRow}
                         className="text-sm text-[#0f766e] font-medium hover:underline flex items-center gap-1 pl-1"
                     >
-                        <Plus className="w-4 h-4" /> Add Line
+                        <Plus className="w-4 h-4" /> 行を追加
                     </button>
                 </div>
             </div>
 
             {/* Steps / Notes */}
             <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Steps / Notes</label>
+                <label className="text-sm font-semibold text-gray-700">作り方 / メモ</label>
                 <textarea
                     value={steps}
                     onChange={(e) => setSteps(e.target.value)}
-                    placeholder="1. Add ice to the glass..."
+                    placeholder="1. グラスに氷を入れる..."
                     className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-[#0f766e] outline-none min-h-[100px]"
                 />
             </div>
@@ -419,7 +419,7 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
                         onClick={onCancel}
                         className="flex-1 py-3 text-gray-600 font-bold hover:bg-gray-50 rounded-xl transition-colors"
                     >
-                        Cancel
+                        キャンセル
                     </button>
                     <button
                         onClick={handleSubmit}
@@ -429,10 +429,10 @@ export const RecipeForm = forwardRef<RecipeFormHandle, RecipeFormProps>(({ shopI
                         {isSubmitting ? (
                             <>
                                 <Loader2 className="w-5 h-5 animate-spin" />
-                                Saving...
+                                保存中...
                             </>
                         ) : (
-                            "Save Recipe"
+                            "レシピを保存"
                         )}
                     </button>
                 </div>

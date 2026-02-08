@@ -59,8 +59,8 @@ export function RecipeReader({ recipe, shopId, onClose, onUpdate }: RecipeReader
                         <Coffee className="w-5 h-5 text-gray-500" />
                     </div>
                     <div>
-                        <h2 className="font-bold text-gray-800 text-sm">Recipe Details</h2>
-                        <p className="text-xs text-gray-400">Read Only Mode</p>
+                        <h2 className="font-bold text-gray-800 text-sm">レシピ詳細</h2>
+                        <p className="text-xs text-gray-400">閲覧モード</p>
                     </div>
                 </div>
 
@@ -79,12 +79,12 @@ export function RecipeReader({ recipe, shopId, onClose, onUpdate }: RecipeReader
                         ) : localIsVisible ? (
                             <>
                                 <Eye className="w-3 h-3" />
-                                Available
+                                公開中
                             </>
                         ) : (
                             <>
                                 <EyeOff className="w-3 h-3" />
-                                SOLD OUT
+                                売り切れ
                             </>
                         )}
                     </button>
@@ -114,7 +114,7 @@ export function RecipeReader({ recipe, shopId, onClose, onUpdate }: RecipeReader
                         )}
                         {!localIsVisible && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                                <span className="text-white font-bold tracking-widest border-2 border-white px-4 py-2 rounded-lg">SOLD OUT</span>
+                                <span className="text-white font-bold tracking-widest border-2 border-white px-4 py-2 rounded-lg">売り切れ</span>
                             </div>
                         )}
                     </div>
@@ -146,7 +146,7 @@ export function RecipeReader({ recipe, shopId, onClose, onUpdate }: RecipeReader
                 {/* Ingredients */}
                 <div>
                     <h3 className="font-bold text-gray-700 mb-3 text-sm flex items-center gap-2">
-                        Ingredients
+                        材料
                         <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs font-light">{recipe.ingredients?.length || 0}</span>
                     </h3>
                     <ul className="space-y-2">
@@ -156,21 +156,21 @@ export function RecipeReader({ recipe, shopId, onClose, onUpdate }: RecipeReader
                                 <span className="text-sm text-gray-700">{ing}</span>
                             </li>
                         )) : (
-                            <li className="text-xs text-gray-400 italic">No ingredients listed.</li>
+                            <li className="text-xs text-gray-400 italic">材料が登録されていません。</li>
                         )}
                     </ul>
                 </div>
 
                 {/* Steps */}
                 <div>
-                    <h3 className="font-bold text-gray-700 mb-3 text-sm">How to Make</h3>
+                    <h3 className="font-bold text-gray-700 mb-3 text-sm">作り方</h3>
                     <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                         {recipe.steps ? (
                             <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                                 {recipe.steps}
                             </p>
                         ) : (
-                            <p className="text-xs text-gray-400 italic">No steps listed.</p>
+                            <p className="text-xs text-gray-400 italic">手順が登録されていません。</p>
                         )}
                     </div>
                 </div>

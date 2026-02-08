@@ -27,7 +27,7 @@ export function HeroSection() {
                     <div className="absolute -inset-4 rounded-3xl bg-primary/5" />
                     <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-primary/10">
                         <Image
-                            src="/images/hero-tablet.jpg"
+                            src="/lp-image/hero-phone.png"
                             alt="カフェでKaluaのレシピ管理アプリを表示しているタブレット"
                             width={1200}
                             height={750}

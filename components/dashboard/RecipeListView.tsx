@@ -39,7 +39,7 @@ export function RecipeListView({
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                     <Coffee className="w-8 h-8 text-gray-300" />
                 </div>
-                <p className="font-medium">No recipes found</p>
+                <p className="font-medium">レシピが見つかりません</p>
             </div>
         )
     }
@@ -69,12 +69,12 @@ export function RecipeListView({
                         )}
 
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-12"></th>
-                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</th>
-                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">Category</th>
-                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24 text-center">Read</th>
-                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-16 text-center">Visible</th>
-                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-48 hidden lg:table-cell">Tags</th>
-                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32 hidden xl:table-cell">Created</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">タイトル</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">カテゴリ</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24 text-center">既読</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-16 text-center">公開</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-48 hidden lg:table-cell">タグ</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32 hidden xl:table-cell">作成日</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">

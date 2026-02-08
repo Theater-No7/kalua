@@ -60,10 +60,10 @@ export function RecipeSidePanel({ isOpen, onClose, shopId, editingRecipe, onSave
                     </div>
                     <div>
                         <h2 className="font-bold text-gray-800">
-                            {editingRecipe ? "Edit Properties" : "New Recipe"}
+                            {editingRecipe ? "プロパティを編集" : "新規レシピ"}
                         </h2>
                         <p className="text-xs text-gray-400">
-                            {editingRecipe ? "Update recipe details" : "Create a new menu item"}
+                            {editingRecipe ? "レシピの詳細を更新" : "新しいメニューを作成"}
                         </p>
                     </div>
                 </div>
@@ -94,7 +94,7 @@ export function RecipeSidePanel({ isOpen, onClose, shopId, editingRecipe, onSave
                     disabled={isSaving}
                     className="py-3 px-4 rounded-xl font-bold text-gray-600 hover:bg-gray-200 bg-white border border-gray-200 transition-colors disabled:opacity-50"
                 >
-                    Cancel
+                    キャンセル
                 </button>
                 <button
                     onClick={handlePanelSave}
@@ -104,12 +104,12 @@ export function RecipeSidePanel({ isOpen, onClose, shopId, editingRecipe, onSave
                     {isSaving ? (
                         <>
                             <Loader2 className="w-5 h-5 animate-spin" />
-                            Saving...
+                            保存中...
                         </>
                     ) : (
                         <>
                             <Save className="w-5 h-5" />
-                            Changes
+                            保存
                         </>
                     )}
                 </button>

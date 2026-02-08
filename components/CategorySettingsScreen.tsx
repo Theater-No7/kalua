@@ -34,13 +34,13 @@ export function CategorySettingsScreen({ shopId }: CategorySettingsScreenProps) 
             {/* 上部: 追加フォーム */}
             <div className="p-4 border-b flex gap-2 bg-slate-50">
                 <Input
-                    placeholder="New category name..."
+                    placeholder="新しいカテゴリ名..."
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="bg-white"
                 />
                 <Button onClick={handleAdd} className="bg-[#0f766e] hover:bg-[#0d9488] text-white">
-                    <Plus className="w-4 h-4 mr-1" /> Add
+                    <Plus className="w-4 h-4 mr-1" /> 追加
                 </Button>
             </div>
 

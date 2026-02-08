@@ -16,7 +16,7 @@ export function RecipeCardGrid({ recipes, onSelect, onToggleVisibility }: Recipe
         return (
             <div className="flex flex-col items-center justify-center p-12 text-gray-400">
                 <Coffee className="w-12 h-12 mb-4 text-gray-200" />
-                <p>No recipes yet</p>
+                <p>レシピがまだありません</p>
             </div>
         )
     }
@@ -40,7 +40,7 @@ export function RecipeCardGrid({ recipes, onSelect, onToggleVisibility }: Recipe
                         {/* Status Badge (if hidden) */}
                         {!isVisible && (
                             <div className="absolute top-2 left-2 z-10 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 backdrop-blur-sm pointer-events-none">
-                                <EyeOff className="w-3 h-3" /> HIDDEN
+                                <EyeOff className="w-3 h-3" /> 非公開
                             </div>
                         )}
 

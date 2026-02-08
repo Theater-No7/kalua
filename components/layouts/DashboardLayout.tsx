@@ -38,7 +38,7 @@ export function DashboardLayout({
                 <nav className="flex-1 p-4 space-y-1">
                     <SidebarItem
                         icon={Coffee}
-                        label="Recipes"
+                        label="レシピ"
                         isActive={activeTab === "recipes"}
                         onClick={() => onTabChange("recipes")}
                     />
@@ -46,7 +46,7 @@ export function DashboardLayout({
                     {role === 'OWNER' && (
                         <SidebarItem
                             icon={LayoutGrid}
-                            label="Categories"
+                            label="カテゴリ"
                             isActive={activeTab === "categories"}
                             onClick={() => onTabChange("categories")}
                         />
@@ -54,7 +54,7 @@ export function DashboardLayout({
 
                     <SidebarItem
                         icon={Bell}
-                        label="Notifications"
+                        label="通知"
                         isActive={activeTab === "notifications"}
                         onClick={() => onTabChange("notifications")}
                         badge={unreadCount > 0 ? unreadCount : undefined}
@@ -67,7 +67,7 @@ export function DashboardLayout({
                     */}
                     <SidebarItem
                         icon={Settings}
-                        label="Settings"
+                        label="設定"
                         isActive={activeTab === "settings"}
                         onClick={() => onTabChange("settings")}
                     />

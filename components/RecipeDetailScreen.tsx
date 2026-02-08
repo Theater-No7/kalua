@@ -57,7 +57,7 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnl
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
-                        <span className="text-sm">No Image</span>
+                        <span className="text-sm">画像なし</span>
                     </div>
                 )}
 
@@ -92,7 +92,7 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnl
                     ) : (
                         /* Staff Read-Only Actions (Sold Out Toggle) */
                         <div className="bg-black/40 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/20 font-bold">
-                            Staff View
+                            スタッフビュー
                         </div>
                     )}
                 </div>
@@ -120,7 +120,7 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnl
                             </span>
                         ) : (
                             <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-400 text-xs font-bold uppercase tracking-wider">
-                                Uncategorized
+                                未分類
                             </span>
                         )}
 
@@ -137,7 +137,7 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnl
                 <div className="flex items-center justify-between py-4 border-y border-gray-100 mb-8">
                     <div className="flex flex-col items-center flex-1 border-r border-gray-100">
                         <Clock className="w-5 h-5 text-gray-400 mb-1" />
-                        <span className="text-xs font-medium text-gray-500">3 mins</span>
+                        <span className="text-xs font-medium text-gray-500">3分</span>
                     </div>
                     <div className="flex flex-col items-center flex-1 border-r border-gray-100">
                         <Flame className="w-5 h-5 text-gray-400 mb-1" />
@@ -145,16 +145,16 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnl
                     </div>
                     <div className="flex flex-col items-center flex-1">
                         <ChefHat className="w-5 h-5 text-gray-400 mb-1" />
-                        <span className="text-xs font-medium text-gray-500">Easy</span>
+                        <span className="text-xs font-medium text-gray-500">簡単</span>
                     </div>
                 </div>
 
                 {/* 🌟 材料リスト */}
                 <div className="mb-8">
                     <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        Ingredients
+                        材料
                         <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                            {recipe.ingredients?.length || 0} items
+                            {recipe.ingredients?.length || 0} 点
                         </span>
                     </h2>
 
@@ -190,7 +190,7 @@ export function RecipeDetailScreen({ recipe, onBack, onEdit, onDelete, isReadOnl
 
                 {/* 🌟 手順 */}
                 <div className="mb-8">
-                    <h2 className="text-lg font-bold text-gray-800 mb-4">How to make</h2>
+                    <h2 className="text-lg font-bold text-gray-800 mb-4">作り方</h2>
                     <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
                         {recipe.steps ? (
                             <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap font-medium">

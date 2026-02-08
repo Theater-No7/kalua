@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/contexts/AuthContext"
+import { useRouter } from "next/navigation"
 import { Shield, User, LogOut, GripHorizontal, Minimize2, Maximize2 } from "lucide-react"
 
 export function DebugLoginPanel() {
@@ -9,6 +10,7 @@ export function DebugLoginPanel() {
     if (process.env.NODE_ENV !== 'development') return null
 
     const { user, role, loginAsDebugUser, logout } = useAuth()
+    const router = useRouter()
 
     // State
     const [isMinimized, setIsMinimized] = useState(true)
@@ -140,14 +142,20 @@ export function DebugLoginPanel() {
 
                 <div className="grid grid-cols-2 gap-2">
                     <button
-                        onClick={() => loginAsDebugUser("OWNER", "debug-owner-001")}
+                        onClick={() => {
+                            loginAsDebugUser("OWNER", "debug-owner-001")
+                            router.push('/dashboard')
+                        }}
                         className="flex flex-col items-center justify-center gap-1 p-2 bg-purple-500/10 hover:bg-purple-500/30 text-purple-200 rounded-lg transition-colors border border-purple-500/20"
                     >
                         <Shield className="w-4 h-4 mb-0.5" />
                         <span className="font-bold">Owner</span>
                     </button>
                     <button
-                        onClick={() => loginAsDebugUser("STAFF", "debug-staff-001")}
+                        onClick={() => {
+                            loginAsDebugUser("STAFF", "debug-staff-001")
+                            router.push('/dashboard')
+                        }}
                         className="flex flex-col items-center justify-center gap-1 p-2 bg-emerald-500/10 hover:bg-emerald-500/30 text-emerald-200 rounded-lg transition-colors border border-emerald-500/20"
                     >
                         <User className="w-4 h-4 mb-0.5" />

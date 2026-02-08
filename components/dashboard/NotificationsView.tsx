@@ -19,7 +19,7 @@ export function NotificationsView({ shopId, onSelectRecipe, onBack }: Notificati
     if (loading) {
         return (
             <div className="flex h-full items-center justify-center text-gray-400">
-                <p>Loading notifications...</p>
+                <p>通知を読み込み中...</p>
             </div>
         )
     }
@@ -30,8 +30,8 @@ export function NotificationsView({ shopId, onSelectRecipe, onBack }: Notificati
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                     <BellOff className="w-8 h-8 text-gray-300" />
                 </div>
-                <h3 className="font-bold text-gray-700">No Notifications</h3>
-                <p className="text-sm mt-1">You're all caught up!</p>
+                <h3 className="font-bold text-gray-700">通知はありません</h3>
+                <p className="text-sm mt-1">すべて確認済みです！</p>
             </div>
         )
     }
@@ -60,7 +60,7 @@ export function NotificationsView({ shopId, onSelectRecipe, onBack }: Notificati
                 </button>
                 <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                     <Bell className="w-6 h-6 text-[#0f766e]" />
-                    Notifications
+                    通知
                 </h2>
             </div>
 
@@ -95,12 +95,12 @@ export function NotificationsView({ shopId, onSelectRecipe, onBack }: Notificati
                                     {!isRead && (
                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mr-2 ${item.type === 'create' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
                                             }`}>
-                                            {item.type === 'create' ? "New Recipe" : "Update"}
+                                            {item.type === 'create' ? "新着レシピ" : "更新"}
                                         </span>
                                     )}
                                     <span className="text-xs text-gray-400 flex items-center gap-1">
                                         <Calendar className="w-3 h-3" />
-                                        {item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString() + " " + new Date(item.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"}
+                                        {item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString() + " " + new Date(item.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "たった今"}
                                     </span>
                                 </div>
 
@@ -108,7 +108,7 @@ export function NotificationsView({ shopId, onSelectRecipe, onBack }: Notificati
                                     {item.message}
                                 </h3>
                                 <p className="text-sm text-gray-500 mt-1 line-clamp-1">
-                                    Tap to view details for <span className="font-medium text-gray-700">{item.recipeTitle}</span>
+                                    詳細を見る：<span className="font-medium text-gray-700">{item.recipeTitle}</span>
                                 </p>
                             </div>
 
