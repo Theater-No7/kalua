@@ -1,4 +1,5 @@
 import { Globe, Database, Cpu, Users } from "lucide-react"
+import { FileCode } from "lucide-react"
 
 const techItems = [
     {
@@ -12,9 +13,9 @@ const techItems = [
         Icon: Database,
     },
     {
-        name: "Go",
-        detail: "バックエンドバッチ処理",
-        Icon: Cpu,
+        name: "TypeScript",
+        detail: "型安全な堅牢性",
+        Icon: FileCode,
     },
     {
         name: "HCI/UXデザイン",

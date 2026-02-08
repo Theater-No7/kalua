@@ -2,18 +2,18 @@ import { Smartphone, Bell, CheckCircle2 } from "lucide-react"
 
 const items = [
     {
-        problem: "紙のマニュアルは汚れて、なくなる。",
-        solution: "いつでも清潔、いつでもデジタル。",
+        problem: "紙のマニュアルは汚れるし、トーク履歴は流れてしまう。",
+        solution: "簡単管理のデジタルマニュアルで、いつでも清潔、いつでも確認。",
         Icon: Smartphone,
     },
     {
-        problem: "更新が全員に届かない。",
-        solution: "リアルタイム通知で全スタッフに即共有。",
+        problem: "キッチンでササっと確認したいのに、マニュアルが開けない...",
+        solution: "瞬間LINEログインと常時点灯で、忙しない現場スタッフにも優しい設計。",
         Icon: Bell,
     },
     {
-        problem: "誰が新しいレシピを読んだ？",
-        solution: "既読確認でトレーニング進捗を把握。",
+        problem: "誰が新しいレシピを読んだ？スタッフが把握してるか不安...",
+        solution: "既読確認でトレーニング進捗を把握。困っているスタッフも見つけやすい。",
         Icon: CheckCircle2,
     },
 ]

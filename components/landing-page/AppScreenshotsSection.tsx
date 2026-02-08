@@ -22,8 +22,8 @@ const tabs = [
             },
             {
                 src: "/lp-image/owner-staff-management.png",
-                alt: "オーナー向けスタッフ管理・既読確認画面",
-                caption: "スタッフ管理・既読確認",
+                alt: "オーナー向けスタッフ管理・招待画面",
+                caption: "スタッフ管理・招待",
             },
         ],
     },
