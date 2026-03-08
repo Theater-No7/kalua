@@ -6,11 +6,11 @@ export function Footer() {
             <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
                 <div className="flex items-center gap-2">
                     <Image
-                        src="/kalua_black-removebg.png"
+                        src="/kalua_white-removebg.png"
                         alt="Kalua Logo"
                         width={100}
                         height={60}
-                        className="object-contain object-left"
+                        className="object-contain object-left invert dark:invert-0"
                         priority
                     />
                 </div>
