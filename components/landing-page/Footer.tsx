@@ -20,7 +20,7 @@ export function Footer() {
                 </p>
 
                 <a
-                    href="https://github.com/Theater-No7"
+                    href="https://github.com/Theater-No7/kalua"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
